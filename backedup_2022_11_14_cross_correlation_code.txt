@@ -1,0 +1,211 @@
+// cross_correlation.cpp : This file contains the 'main' function. Program execution begins and ends there.
+//
+
+#include "windows.h"
+
+#include <opencv2/opencv.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
+
+#include <iostream>
+#include <string>
+
+using namespace cv;
+using namespace std;
+
+/*struct ROI {
+    int x1, y1; // coordinates of the vertex p1 determmined based on the EVENT_LBUTTONDOWN event
+    int x2, y2; // coordinates of the diagonally opposite vertex p2 determined based on the EVENT_LBUTTONUP event
+    int width;; // width of the rectangular region of interest
+    int height; // height of the rectangular region of interest
+    bool defined = false;
+};
+
+ROI first_ROI, second_ROI; */
+
+Mat getMat(HWND hWnd) {
+    // CreateRectRgn(int x1,int y1,int x2,int y2)
+    // x1 = Specifies the x-coordinate of the upper-left corner of the region in logical units
+    // y1 = Specifies the y-coordinate of the upper-left corner of the region in logical units
+    // x2 = Specifies the x-coordinate of the lower-right corner of the region in logical units
+    // y2 = Specifies the y-coordinate of the lower-right corner of the region in logical units
+    // HRGN hClpRgn = CreateRectRgn(50,50,50,50);
+    // HDC hScreen = GetDCEx(hWnd, hClpRgn, DCX_NORESETATTRS);
+    HDC hScreen = GetDC(hWnd);
+    HDC hDC = CreateCompatibleDC(hScreen);
+    
+    RECT windowRect;
+    GetClientRect(hWnd,&windowRect);
+
+    int height = windowRect.bottom;
+    int width = windowRect.right;
+    
+    HBITMAP hBitmap = CreateCompatibleBitmap(hScreen, width, height);
+    SelectObject(hDC, hBitmap);
+    
+    // BitBlt(HDC hdc,int x,int y,int cx,int cy,HDC hdcSrc,int x1,int y1,DWORD rop)
+    // hdc = A handle to the destination device context
+    // x = The x-coordinate, in logical units, of the upper-left corner of the destination rectangle
+    // y = The y-coordinate, in logical units, of the upper-left corner of the destination rectangle
+    // cx = The width, in logical units, of the source and destination rentangles
+    // cy = The height, in logical units, of the source and destination rectangles
+    // hdcSrc = A handle to the source device context
+    // x1 = The x-coordinate, in logical units, of the upper-left corner of the source rectangle
+    // y1 = The y-coordinate, in logical units, of the upper-left corner of the source rectangle
+    // rop = A raster-operation code -- SRCCOPY = Copies the source rectangle directly to the destination rectangle
+    BitBlt(hDC, 0, 0, width, height, hScreen, 0, 0, SRCCOPY);
+
+    BITMAPINFOHEADER bi;
+    bi.biSize = sizeof(BITMAPINFOHEADER);
+    bi.biWidth = width;
+    bi.biHeight = -height;
+    bi.biPlanes = 1;
+    bi.biBitCount = 32;
+    bi.biCompression = BI_RGB;
+    bi.biSizeImage = 0;
+    bi.biXPelsPerMeter = 0;
+    bi.biYPelsPerMeter = 0;
+    bi.biClrUsed = 0;
+    bi.biClrImportant = 0;
+
+    Mat mat(height, width, CV_8UC4, Scalar(0, 0, 0, 8));
+
+    GetDIBits(hDC, hBitmap, 0, height, mat.data, (BITMAPINFO*)&bi, DIB_RGB_COLORS);
+
+    DeleteObject(hBitmap);
+    DeleteDC(hDC);
+    ReleaseDC(hWnd,hScreen);
+
+    return mat;
+}
+
+/*void CallBackFunc(int event, int x, int y, int flags, void* userData) {
+    if (event == EVENT_LBUTTONDOWN) {
+        cout << "Left button of the mouse is clicked - Position (" << x << "," << y << ")" << endl;
+        ROI roi = *(ROI*)userData;
+        roi.x1 = x;
+        roi.y1 = y;
+        return;
+    }
+    else if (event == EVENT_RBUTTONDOWN) {
+        cout << "Right button of the mouse is clicked - Position (" << x << "," << y << ")" << endl;
+        ROI roi = *(ROI*)userData;
+        roi.defined = true;
+        return;
+    }
+    else if (event == EVENT_LBUTTONUP) {
+        cout << "Left button of the mouse is released - Position (" << x << "," << y << ")" << endl;
+        ROI roi = *(ROI *)userData;
+        roi.x2 = x;
+        roi.y2 = y;
+        roi.width = roi.x2 - roi.x1;
+        roi.height = roi.y2 - roi.y1;
+        return;
+    }
+    else if (event == EVENT_MOUSEMOVE) {
+        cout << "Mouse move over the window - Position (" << x << "," << y << ")" << endl;
+        ROI roi = *(ROI*)userData;
+        roi.x2 = x;
+        roi.y2 = y;
+        roi.width = roi.x2 - roi.x1;
+        roi.height = roi.y2 - roi.y1;
+        return;
+    }
+} */
+
+bool first_ROI_defined = false;
+bool second_ROI_defined = false;
+
+int main(int argc, char** argv)
+{
+    // TESTING SCREENSHOT
+    LPCWSTR windowTitle = L"cross_correlation - Microsoft Visual Studio Current"; // LPCWTSR is a 32-bit pointer to a constant string of 16-bit Unicode characters .. typedef const wchar_t* LPCWSTR
+    HWND hWnd = FindWindow(NULL,windowTitle);
+    
+    String windowName = "Cross-Correlation"; // Name of the window
+    namedWindow(windowName, WINDOW_NORMAL); // Create a window
+
+    /*void* ptr1 = &first_ROI;
+    setMouseCallback(windowName, CallBackFunc, ptr1); // Set the callback function for any mouse event
+    void* ptr2 = &second_ROI;
+    setMouseCallback(windowName, CallBackFunc, ptr2); // Set the callback function for any mouse event*/
+
+    vector<Rect> ROIs(2);
+
+    while (waitKey(1) != 113) { // Wait for ESC key press in the window for spcified milliseconds -- 0 = forever
+        Mat screenshotImage = getMat(hWnd);
+        
+        // Applying Gaussian filter
+        // Default filter (Gaussian kernel) size is defined as: 2*ceil(2*sigma)+1
+        // Following section of code mimics MATLAB's imgaussfilt() function
+        Mat filteredScreenshotImage;
+        double sigma = 1; // Standard deviation of Gaussian filter
+        int FilterSize = 2*(int)ceil(2*sigma)+1; // Size of the Gaussian kernel, FilterSize x FilterSize
+        GaussianBlur(screenshotImage, filteredScreenshotImage, Size(FilterSize,FilterSize),0);
+
+        if (!first_ROI_defined) {
+            ROIs[0] = selectROI(windowName, filteredScreenshotImage, true, false);
+            first_ROI_defined = true;
+        }
+        rectangle(filteredScreenshotImage, ROIs[0], Scalar(0,0,255), 3, 8, 0);
+
+        if (!second_ROI_defined) {
+            ROIs[1] = selectROI(windowName, filteredScreenshotImage, true, false);
+            second_ROI_defined = true;
+        }
+        rectangle(filteredScreenshotImage, ROIs[1], Scalar(255, 0, 0), 3, 8, 0);
+
+        /* Get the regions of interest -- ask user
+        // first ROI
+        if (first_ROI.defined != true) { // user is working on defining the first region of interest 
+            // setMouseCallback(windowName, CallBackFunc, ptr1); // Set the callback function for any mouse event
+            rectangle(filteredScreenshotImage, Rect(first_ROI.x1, first_ROI.y1, first_ROI.width, first_ROI.height), Scalar(255, 0, 255), 1, 8, 0); // first region of interest
+            cout << "ROI dimensions - (Width,Height) - (" << first_ROI.width << "," << first_ROI.height << ")" << endl;
+        }
+        // second ROI
+        if (second_ROI.defined != true) { // user is working on defining the first region of interest 
+            // setMouseCallback(windowName, CallBackFunc, ptr2); // Set the callback function for any mouse event
+            rectangle(filteredScreenshotImage, Rect(second_ROI.x1, second_ROI.y1, second_ROI.width, second_ROI.height), Scalar(255, 0, 255), 1, 8, 0); // first region of interest
+        } */
+
+        imshow(windowName, filteredScreenshotImage); // Show the image inside the created window
+    }
+
+    // destroyWindow(windowName); // Destroy the created window
+
+    return 0;
+}
+
+// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
+// Debug program: F5 or Debug > Start Debugging menu
+
+// Tips for Getting Started: 
+//   1. Use the Solution Explorer window to add/manage files
+//   2. Use the Team Explorer window to connect to source control
+//   3. Use the Output window to see build output and other messages
+//   4. Use the Error List window to view errors
+//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
+//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
+
+   // Read the .tiff image file
+    // Mat imgs = imread("N:/Neel/Projects/NIH_Eye/OpenCV_projects/example.tiff");
+
+    /*if (imgs.empty())
+    {
+        cout << "Could not open or find the image" << endl;
+        system("pause"); // Wait for any key press
+        return -1;
+    }*/
+
+    // Create a new image which consists of
+    // 3 channels
+    // Image depth of 8 bits
+    // 800x600 of resolution (800 wide and 600 high)
+    // Each pixel initialized to the value of (100,50,30) for Blue, Green, and Red planes respectively
+    // Mat::Mat(int rows, int cols, int type, const Scalar& s)
+    // Mat image(600,800,CV_8UC3,Scalar(100,250,30));
+
+    //String windowName = "Cross-Correlation"; // Name of the window
+    //namedWindow(windowName); // Create a window
+    //imshow(windowName, imgs); // Show the image inside the created window
+    //waitKey(0); // Wait for any keystroke in the window for spcified milliseconds -- 0 = forever
