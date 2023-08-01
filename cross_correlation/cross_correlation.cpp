@@ -1,5 +1,4 @@
 // cross_correlation.cpp : This file contains the 'main' function. Program execution begins and ends there.
-// test 5
 
 #include "windows.h"
 #include <winsock.h>
