@@ -89,10 +89,10 @@ int main(int argc, char** argv)
 {
     // ****** UDP Communications ****** ONLY COMMENTED FOR TESTING ON PERSONAL COMPUTER 
 
-    // cu::robotics::RobotCommSend send;
-    // cu::robotics::RobotCommReceive recv;
-    // send.initialize("192.168.1.100",27000);
-    // recv.initialize(27001);
+    cu::robotics::RobotCommSend send;
+    cu::robotics::RobotCommReceive recv;
+    send.initialize("192.168.1.100",27000);
+    recv.initialize(27001);
 
     // ***********************************
 
@@ -190,6 +190,7 @@ int main(int argc, char** argv)
 
 
 
+
     // ******* MAIN LOOP FOR SEGMENTATION AND ROI COMPARISON ********
 
     while (waitKey(1) != 113) { // Wait for ESC key press in the window for specified milliseconds -- 0 = forever
@@ -208,7 +209,7 @@ int main(int argc, char** argv)
         // ******* UDP MESSAGE RECEIVING *******
 
         // Receive UDP messages from the target machine 
-        // recv.receive(udpRecvData); ******* ONLY COMMENTED FOR TESTING ON PERSONAL COMPUTER *******
+        recv.receive(udpRecvData); // ******* ONLY COMMENTED FOR TESTING ON PERSONAL COMPUTER *******
 
         // The recieved UDP packet contains two values
         // (1) dx = change in needle tip position along the x-axis of the image (value in px)
@@ -226,7 +227,7 @@ int main(int argc, char** argv)
         dx = static_cast<int>(udpRecvData[0]);
         dz = static_cast<int>(udpRecvData[1]);
 
-        // cout << dx << "," << dz << endl; // used this while testing the code
+        cout << dx << "," << dz << endl; // used this while testing the code
 
         // ***********************************
 
@@ -351,7 +352,7 @@ int main(int argc, char** argv)
 
         udpSendData[0] = std::sqrt((center_of_second_ROI.x - center_of_first_ROI.x) * (center_of_second_ROI.x - center_of_first_ROI.x));
         udpSendData[1] = std::sqrt((center_of_second_ROI.y - center_of_first_ROI.y) * (center_of_second_ROI.y - center_of_first_ROI.y));
-        // send.send(udpSendData); ******* ONLY COMMENTED FOR TESTING ON PERSONAL COMPUTER *******
+        send.send(udpSendData); // ******* ONLY COMMENTED FOR TESTING ON PERSONAL COMPUTER *******
 
 
 
