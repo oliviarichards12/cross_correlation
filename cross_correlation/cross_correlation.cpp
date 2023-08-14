@@ -89,10 +89,10 @@ int main(int argc, char** argv)
 {
     // ****** UDP Communications ****** ONLY COMMENTED FOR TESTING ON PERSONAL COMPUTER 
 
-    cu::robotics::RobotCommSend send;
-    cu::robotics::RobotCommReceive recv;
-    send.initialize("192.168.1.100",27000);
-    recv.initialize(27001);
+    //cu::robotics::RobotCommSend send;
+    //cu::robotics::RobotCommReceive recv;
+    //send.initialize("192.168.1.100",27000);
+    //recv.initialize(27001);
 
     // ***********************************
 
@@ -117,7 +117,7 @@ int main(int argc, char** argv)
     // ******  GET A SCREENSHOT ****** 
 
     // LPCWSTR windowTitle = L"cross_correlation - Microsoft Visual Studio Current"; // LPCWTSR is a 32-bit pointer to a constant string of 16-bit Unicode characters .. typedef const wchar_t* LPCWSTR
-    LPCWSTR windowTitle = L"File Explorer"; // LPCWTSR is a 32-bit pointer to a constant string of 16-bit Unicode characters .. typedef const wchar_t* LPCWSTR
+    LPCWSTR windowTitle = L"2023_03_23_exvivo_pig_eye_cropped.mp4 - VLC media player"; // LPCWTSR is a 32-bit pointer to a constant string of 16-bit Unicode characters .. typedef const wchar_t* LPCWSTR
     HWND hWnd = FindWindow(NULL, windowTitle);
 
     // ***********************************
@@ -133,11 +133,17 @@ int main(int argc, char** argv)
     // y2 = Specifies the y-coordinate of the lower-right corner of the region in logical units
 
 
+    //// This is the window clipping region
+    //int x1 = 461; // x-coord upper-left corner // 500
+    //int y1 = 215; // y-coord upper-left corner // 500
+    //int x2 = 1230; // x-coord lower-right corner // 1000
+    //int y2 = 990; // y-coord lower-right corner // 1000
+
     // This is the window clipping region
-    int x1 = 461; // x-coord upper-left corner // 500
-    int y1 = 215; // y-coord upper-left corner // 500
-    int x2 = 1230; // x-coord lower-right corner // 1000
-    int y2 = 990; // y-coord lower-right corner // 1000
+    int x1 = 0; // x-coord upper-left corner // 500
+    int y1 = 0; // y-coord upper-left corner // 500
+    int x2 = 1500; // x-coord lower-right corner // 1000
+    int y2 = 1500; // y-coord lower-right corner // 1000
 
     // ***********************************
 
@@ -209,7 +215,7 @@ int main(int argc, char** argv)
         // ******* UDP MESSAGE RECEIVING *******
 
         // Receive UDP messages from the target machine 
-        recv.receive(udpRecvData); // ******* ONLY COMMENTED FOR TESTING ON PERSONAL COMPUTER *******
+        //recv.receive(udpRecvData); // ******* ONLY COMMENTED FOR TESTING ON PERSONAL COMPUTER *******
 
         // The recieved UDP packet contains two values
         // (1) dx = change in needle tip position along the x-axis of the image (value in px)
@@ -227,7 +233,10 @@ int main(int argc, char** argv)
         dx = static_cast<int>(udpRecvData[0]);
         dz = static_cast<int>(udpRecvData[1]);
 
-        cout << dx << "," << dz << endl; // used this while testing the code
+        // TODO: Check the units of these values (assumed px) Yes, conversion done on target machine
+        // TODO: Find out a solution to the UDP communication problem
+
+        //cout << dx << "," << dz << endl; // used this while testing the code
 
         // ***********************************
 
@@ -348,11 +357,13 @@ int main(int argc, char** argv)
         // Display the image
         imshow(windowName, image_for_display); // Show the image inside the created window
 
+
+
         // Send the distance between these two ROIs over UDP
 
         udpSendData[0] = std::sqrt((center_of_second_ROI.x - center_of_first_ROI.x) * (center_of_second_ROI.x - center_of_first_ROI.x));
         udpSendData[1] = std::sqrt((center_of_second_ROI.y - center_of_first_ROI.y) * (center_of_second_ROI.y - center_of_first_ROI.y));
-        send.send(udpSendData); // ******* ONLY COMMENTED FOR TESTING ON PERSONAL COMPUTER *******
+        //send.send(udpSendData); // ******* ONLY COMMENTED FOR TESTING ON PERSONAL COMPUTER *******
 
 
 
