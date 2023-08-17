@@ -117,7 +117,7 @@ int main(int argc, char** argv)
     // ******  GET A SCREENSHOT ****** 
 
     // LPCWSTR windowTitle = L"cross_correlation - Microsoft Visual Studio Current"; // LPCWTSR is a 32-bit pointer to a constant string of 16-bit Unicode characters .. typedef const wchar_t* LPCWSTR
-    LPCWSTR windowTitle = L"2023_03_23_exvivo_pig_eye_cropped.mp4 - VLC media player"; // LPCWTSR is a 32-bit pointer to a constant string of 16-bit Unicode characters .. typedef const wchar_t* LPCWSTR
+    LPCWSTR windowTitle = L"20223_08_16_exvivo_pig_cropped.mp4 - VLC media player"; // LPCWTSR is a 32-bit pointer to a constant string of 16-bit Unicode characters .. typedef const wchar_t* LPCWSTR
     HWND hWnd = FindWindow(NULL, windowTitle);
 
     // ***********************************
@@ -133,7 +133,7 @@ int main(int argc, char** argv)
     // y2 = Specifies the y-coordinate of the lower-right corner of the region in logical units
 
 
-    //// This is the window clipping region
+    // This is the window clipping region
     //int x1 = 461; // x-coord upper-left corner // 500
     //int y1 = 215; // y-coord upper-left corner // 500
     //int x2 = 1230; // x-coord lower-right corner // 1000
@@ -364,7 +364,7 @@ int main(int argc, char** argv)
         udpSendData[0] = std::sqrt((center_of_second_ROI.x - center_of_first_ROI.x) * (center_of_second_ROI.x - center_of_first_ROI.x));
         udpSendData[1] = std::sqrt((center_of_second_ROI.y - center_of_first_ROI.y) * (center_of_second_ROI.y - center_of_first_ROI.y));
         //send.send(udpSendData); // ******* ONLY COMMENTED FOR TESTING ON PERSONAL COMPUTER *******
-
+        
 
 
 
