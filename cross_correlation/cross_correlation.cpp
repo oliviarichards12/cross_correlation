@@ -267,6 +267,7 @@ int main(int argc, char** argv)
         // Following section of code mimics MATLAB's imgaussfilt() function
 
         Mat filteredScreenshotImage;
+        Mat cimg;
         double sigma = 1; // Standard deviation of Gaussian filter
         int FilterSize = 2 * (int)ceil(2 * sigma) + 1; // Size of the Gaussian kernel, FilterSize x FilterSize
         GaussianBlur(grayScreenshotImage, filteredScreenshotImage, Size(FilterSize, FilterSize), 0);
@@ -282,6 +283,31 @@ int main(int argc, char** argv)
         if (!first_ROI_defined) {
             ROIs[0] = selectROI(windowName, image_for_display, true, false);
             first_ROI_template = filteredScreenshotImage(ROIs[0]);
+            
+            
+            //cout << first_ROI_template << endl;
+            // change the color to red
+            // 1. Find the white areas with thresholding 
+            Mat thresh_ROI = first_ROI_template > 100;
+            cout << thresh_ROI.type() << endl;
+
+            for (int i = 0; i < ROIs[0].width; i++) {
+                for (int j = 0; j < ROIs[0].height; j++) {
+                    Point p(j, i);
+                    if (thresh_ROI.at<bool>(j,i) == 255) {
+                        cout << "Found" << endl;// Found the pixels, but hasn't changed any of the colors yet.
+                        Vec3b color = image_for_display.at<Vec3b>(ROIs[0].x + i, ROIs[0].y + j);
+                        color[0] = 255; 
+                        color[1] = 0;
+                        color[2] = 0;
+                        image_for_display.at<Vec3b>(ROIs[0].x + i, ROIs[0].y + j) = color;
+                    }
+                    
+                }
+            }
+            cout << thresh_ROI << endl;
+            // 2. change all high values to red (>100 becomes red)
+            // 3. set the region within the image_to_display to be equal to the red if it is below a threshold
             first_ROI_defined = true;
         }
 
@@ -293,6 +319,7 @@ int main(int argc, char** argv)
         // first_ROI_matchLoc = first_ROI_maxLoc;
         // rectangle(image_for_display, first_ROI_matchLoc, Point(first_ROI_matchLoc.x + first_ROI_template.cols, first_ROI_matchLoc.y + first_ROI_template.rows), Scalar(0, 0, 255), 3, 8, 0);
 
+        //rectangle(image_for_display, Point(ROIs[0].x, ROIs[0].y), Point(ROIs[0].x + ROIs[0].width, ROIs[0].y + ROIs[0].height), Scalar(0, 0, 255), 3, 8, 0);
         rectangle(image_for_display, Point(ROIs[0].x, ROIs[0].y), Point(ROIs[0].x + ROIs[0].width, ROIs[0].y + ROIs[0].height), Scalar(0, 0, 255), 3, 8, 0);
 
         // ***********************************
@@ -319,6 +346,7 @@ int main(int argc, char** argv)
             minMaxLoc(result, &second_ROI_minVal, &second_ROI_maxVal, &second_ROI_minLoc, &second_ROI_maxLoc, Mat());
             second_ROI_matchLoc = second_ROI_maxLoc;
         }
+        // rectangle(image_for_display, second_ROI_matchLoc, Point(second_ROI_matchLoc.x + second_ROI_template.cols, second_ROI_matchLoc.y + second_ROI_template.rows), Scalar(255, 0, 0), 3, 8, 0);
         rectangle(image_for_display, second_ROI_matchLoc, Point(second_ROI_matchLoc.x + second_ROI_template.cols, second_ROI_matchLoc.y + second_ROI_template.rows), Scalar(255, 0, 0), 3, 8, 0);
 
         // ***********************************
@@ -356,6 +384,7 @@ int main(int argc, char** argv)
 
         // Display the image
         imshow(windowName, image_for_display); // Show the image inside the created window
+        //imshow(windowName, cimg); // Show the image inside the created window
 
 
 
