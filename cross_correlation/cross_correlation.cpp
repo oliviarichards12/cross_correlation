@@ -276,6 +276,8 @@ int main(int argc, char** argv)
 
 
 
+
+
         // ******* FIRST ROI MATCHING *******
 
         // Select first ROI
@@ -283,33 +285,40 @@ int main(int argc, char** argv)
         if (!first_ROI_defined) {
             ROIs[0] = selectROI(windowName, image_for_display, true, false);
             first_ROI_template = filteredScreenshotImage(ROIs[0]);
-            
-            
-            //cout << first_ROI_template << endl;
-            // change the color to red
-            // 1. Find the white areas with thresholding 
-            Mat thresh_ROI = first_ROI_template > 100;
-            cout << thresh_ROI.type() << endl;
-
-            for (int i = 0; i < ROIs[0].width; i++) {
-                for (int j = 0; j < ROIs[0].height; j++) {
-                    Point p(j, i);
-                    if (thresh_ROI.at<bool>(j,i) == 255) {
-                        cout << "Found" << endl;// Found the pixels, but hasn't changed any of the colors yet.
-                        Vec3b color = image_for_display.at<Vec3b>(ROIs[0].x + i, ROIs[0].y + j);
-                        color[0] = 255; 
-                        color[1] = 0;
-                        color[2] = 0;
-                        image_for_display.at<Vec3b>(ROIs[0].x + i, ROIs[0].y + j) = color;
-                    }
-                    
-                }
-            }
-            cout << thresh_ROI << endl;
-            // 2. change all high values to red (>100 becomes red)
-            // 3. set the region within the image_to_display to be equal to the red if it is below a threshold
             first_ROI_defined = true;
         }
+        // ***********************************
+
+
+
+
+        // ******* Needle Tip Overlay *******
+
+        Mat thresh_ROI = first_ROI_template > 100;
+        // cout << first_ROI_template << endl;
+        for (int i = 0; i < ROIs[0].width; i++) {
+            for (int j = 0; j < ROIs[0].height; j++) {
+
+                if (thresh_ROI.at<bool>(j, i) == 255) {
+
+                    //cout << "Ending: " << image_for_display.at<Vec3b>(ROIs[0].y + j, ROIs[0].x + i) << endl;
+                    image_for_display.at<Vec3b>(ROIs[0].y+ j, 1.35*ROIs[0].x + i) = Vec3b(255, 255, 255);
+                    //image_for_display.at<Vec3b>(ROIs[0].y + j, ROIs[0].x + i) = Vec3b(255, 255, 255);
+
+
+                }
+
+            }
+        }
+
+
+        //imshow(windowName, image_for_display);
+        
+        // ***********************************
+
+
+
+
 
         // Template matching - First ROI ******* MIGHT NOT NEED THIS IF THE RIGID TIP KEEPS THE NEEDLE FROM MOVING *******
 
