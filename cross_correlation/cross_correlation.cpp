@@ -288,6 +288,11 @@ int main(int argc, char** argv)
             first_ROI_defined = true;
         }
         // ***********************************
+        cout << "ROIs[0].x: " << ROIs[0].x << endl;
+        cout << "ROIs[0].y: " << ROIs[0].y << endl;
+        cout << "ROIs[0].width: " << ROIs[0].width << endl;
+        cout << "ROIs[0].height: " << ROIs[0].height << endl;
+
 
 
 
@@ -295,17 +300,17 @@ int main(int argc, char** argv)
         // ******* Needle Tip Overlay *******
 
         Mat thresh_ROI = first_ROI_template > 100;
-        // cout << first_ROI_template << endl;
+
         for (int i = 0; i < ROIs[0].width; i++) {
             for (int j = 0; j < ROIs[0].height; j++) {
 
                 if (thresh_ROI.at<bool>(j, i) == 255) {
 
                     //cout << "Ending: " << image_for_display.at<Vec3b>(ROIs[0].y + j, ROIs[0].x + i) << endl;
-                    image_for_display.at<Vec3b>(ROIs[0].y+ j, 1.35*ROIs[0].x + i) = Vec3b(255, 255, 255);
-                    //image_for_display.at<Vec3b>(ROIs[0].y + j, ROIs[0].x + i) = Vec3b(255, 255, 255);
+                    //image_for_display.at<Vec3b>(ROIs[0].y+ j, 1.35*ROIs[0].x + i) = Vec3b(255, 255, 255);
+                    image_for_display.at<Vec3b>(Point(ROIs[0].x + i, ROIs[0].y + j)) = Vec3b(255, 255, 255);
 
-
+                    cout << "point(" << ROIs[0].x + i << "," << ROIs[0].y + j << endl;
                 }
 
             }
@@ -330,6 +335,14 @@ int main(int argc, char** argv)
 
         //rectangle(image_for_display, Point(ROIs[0].x, ROIs[0].y), Point(ROIs[0].x + ROIs[0].width, ROIs[0].y + ROIs[0].height), Scalar(0, 0, 255), 3, 8, 0);
         rectangle(image_for_display, Point(ROIs[0].x, ROIs[0].y), Point(ROIs[0].x + ROIs[0].width, ROIs[0].y + ROIs[0].height), Scalar(0, 0, 255), 3, 8, 0);
+        
+
+        circle(image_for_display, Point(ROIs[0].x, ROIs[0].y), 10, Scalar(0, 255, 0), 2);
+        
+        cout << "Point 0: " << Point(ROIs[0].x, ROIs[0].y) << endl;
+        cout << "Point 1: " << Point(ROIs[0].x + ROIs[0].width, ROIs[0].y + ROIs[0].height) << endl;
+
+
 
         // ***********************************
 
