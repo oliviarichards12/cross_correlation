@@ -89,10 +89,10 @@ int main(int argc, char** argv)
 {
     // ****** UDP Communications ****** ONLY COMMENTED FOR TESTING ON PERSONAL COMPUTER 
 
-    //cu::robotics::RobotCommSend send;
-    //cu::robotics::RobotCommReceive recv;
-    //send.initialize("192.168.1.100",27000);
-    //recv.initialize(27001);
+    cu::robotics::RobotCommSend send;
+    cu::robotics::RobotCommReceive recv;
+    send.initialize("192.168.1.100",27000);
+    recv.initialize(27001);
 
     // ***********************************
 
@@ -116,8 +116,8 @@ int main(int argc, char** argv)
 
     // ******  GET A SCREENSHOT ****** 
 
-    // LPCWSTR windowTitle = L"cross_correlation - Microsoft Visual Studio Current"; // LPCWTSR is a 32-bit pointer to a constant string of 16-bit Unicode characters .. typedef const wchar_t* LPCWSTR
-    LPCWSTR windowTitle = L"20223_08_16_exvivo_pig_cropped.mp4 - VLC media player"; // LPCWTSR is a 32-bit pointer to a constant string of 16-bit Unicode characters .. typedef const wchar_t* LPCWSTR
+     LPCWSTR windowTitle = L"cross_correlation - Microsoft Visual Studio Current"; // LPCWTSR is a 32-bit pointer to a constant string of 16-bit Unicode characters .. typedef const wchar_t* LPCWSTR
+    //LPCWSTR windowTitle = L"20223_08_16_exvivo_pig_cropped.mp4 - VLC media player"; // LPCWTSR is a 32-bit pointer to a constant string of 16-bit Unicode characters .. typedef const wchar_t* LPCWSTR
     HWND hWnd = FindWindow(NULL, windowTitle);
 
     // ***********************************
@@ -134,16 +134,22 @@ int main(int argc, char** argv)
 
 
     // This is the window clipping region
-    //int x1 = 461; // x-coord upper-left corner // 500
-    //int y1 = 215; // y-coord upper-left corner // 500
-    //int x2 = 1230; // x-coord lower-right corner // 1000
-    //int y2 = 990; // y-coord lower-right corner // 1000
+    int x1 = 545; // x-coord upper-left corner // 500
+    int y1 = 130; // y-coord upper-left corner // 500
+    int x2 = 1425; // x-coord lower-right corner // 1000
+    int y2 = 1000; // y-coord lower-right corner // 1000
 
-    // This is the window clipping region
-    int x1 = 0; // x-coord upper-left corner // 500
-    int y1 = 0; // y-coord upper-left corner // 500
-    int x2 = 1500; // x-coord lower-right corner // 1000
-    int y2 = 1500; // y-coord lower-right corner // 1000
+    //// This is the window clipping region *FOR LOCAL MACHINE TESTING ONLY*
+     //int x1 = 0; // x-coord upper-left corner // 500
+     //int y1 = 0; // y-coord upper-left corner // 500
+     //int x2 = 1500; // x-coord lower-right corner // 1000
+     //int y2 = 1500; // y-coord lower-right corner // 1000
+
+    // TEMPORARY DEBUGGING VALUES
+     //int x1 = 600; // x-coord upper-left corner // 500
+     //int y1 = 100; // y-coord upper-left corner // 500
+     //int x2 = 1300; // x-coord lower-right corner // 1000
+     //int y2 = 600; // y-coord lower-right corner // 1000
 
     // ***********************************
 
@@ -215,7 +221,7 @@ int main(int argc, char** argv)
         // ******* UDP MESSAGE RECEIVING *******
 
         // Receive UDP messages from the target machine 
-        //recv.receive(udpRecvData); // ******* ONLY COMMENTED FOR TESTING ON PERSONAL COMPUTER *******
+        recv.receive(udpRecvData); // ******* ONLY COMMENTED FOR TESTING ON PERSONAL COMPUTER *******
 
         // The recieved UDP packet contains two values
         // (1) dx = change in needle tip position along the x-axis of the image (value in px)
@@ -248,8 +254,10 @@ int main(int argc, char** argv)
         // Get the screenshot
         Mat screenshotImage = getMat(hWnd, x1, y1, x2, y2); // uses the active window handle and the desired window size (dimensions)
 
-        // Get a copy of the screenshot for displaying
-        screenshotImage.copyTo(image_for_display);
+        //// Get a copy of the screenshot for displaying
+        //screenshotImage.copyTo(image_for_display);
+
+        image_for_display = screenshotImage.clone();
 
         // Convert the BGR color screenshot into grayscale screenshot for processing
         cvtColor(screenshotImage, grayScreenshotImage, COLOR_BGR2GRAY);
@@ -288,10 +296,7 @@ int main(int argc, char** argv)
             first_ROI_defined = true;
         }
         // ***********************************
-        cout << "ROIs[0].x: " << ROIs[0].x << endl;
-        cout << "ROIs[0].y: " << ROIs[0].y << endl;
-        cout << "ROIs[0].width: " << ROIs[0].width << endl;
-        cout << "ROIs[0].height: " << ROIs[0].height << endl;
+
 
 
 
@@ -299,22 +304,29 @@ int main(int argc, char** argv)
 
         // ******* Needle Tip Overlay *******
 
-        Mat thresh_ROI = first_ROI_template > 100;
+        //Mat thresh_ROI = first_ROI_template > 100;
 
-        for (int i = 0; i < ROIs[0].width; i++) {
-            for (int j = 0; j < ROIs[0].height; j++) {
+        //for (uint16_t j = 0; j < ROIs[0].height; ++j) {
+        //    for (uint16_t i = 0; i < ROIs[0].width; ++i) {
+        //       
 
-                if (thresh_ROI.at<bool>(j, i) == 255) {
+        //        if (thresh_ROI.at<bool>(j, i) == 255) {
 
-                    //cout << "Ending: " << image_for_display.at<Vec3b>(ROIs[0].y + j, ROIs[0].x + i) << endl;
-                    //image_for_display.at<Vec3b>(ROIs[0].y+ j, 1.35*ROIs[0].x + i) = Vec3b(255, 255, 255);
-                    image_for_display.at<Vec3b>(Point(ROIs[0].x + i, ROIs[0].y + j)) = Vec3b(255, 255, 255);
+        //            
+        //            //image_for_display.at<Vec3b>(ROIs[0].y+ j, 1.35*ROIs[0].x + i) = Vec3b(255, 255, 255);
+        //            image_for_display.at<Vec3b>(Point(ROIs[0].x + i, ROIs[0].y + j)) = Vec3b(255, 255, 255);
 
-                    cout << "point(" << ROIs[0].x + i << "," << ROIs[0].y + j << endl;
-                }
+        //            //image_for_display[ROIs[0].y + j][ROIs[0].x + i] = (255, 255, 255);
 
-            }
-        }
+
+        //            /*cout << "point(" << ROIs[0].x + i << "," << ROIs[0].y + j << endl;
+        //            if (i % 10 == 0) {
+        //                circle(image_for_display, Point(ROIs[0].x+i, ROIs[0].y+j), 10, Scalar(0, 255, 0), 2);
+        //            }*/
+        //        }         
+        //    }
+
+        //}
 
 
         //imshow(windowName, image_for_display);
@@ -335,13 +347,6 @@ int main(int argc, char** argv)
 
         //rectangle(image_for_display, Point(ROIs[0].x, ROIs[0].y), Point(ROIs[0].x + ROIs[0].width, ROIs[0].y + ROIs[0].height), Scalar(0, 0, 255), 3, 8, 0);
         rectangle(image_for_display, Point(ROIs[0].x, ROIs[0].y), Point(ROIs[0].x + ROIs[0].width, ROIs[0].y + ROIs[0].height), Scalar(0, 0, 255), 3, 8, 0);
-        
-
-        circle(image_for_display, Point(ROIs[0].x, ROIs[0].y), 10, Scalar(0, 255, 0), 2);
-        
-        cout << "Point 0: " << Point(ROIs[0].x, ROIs[0].y) << endl;
-        cout << "Point 1: " << Point(ROIs[0].x + ROIs[0].width, ROIs[0].y + ROIs[0].height) << endl;
-
 
 
         // ***********************************
@@ -368,7 +373,6 @@ int main(int argc, char** argv)
             minMaxLoc(result, &second_ROI_minVal, &second_ROI_maxVal, &second_ROI_minLoc, &second_ROI_maxLoc, Mat());
             second_ROI_matchLoc = second_ROI_maxLoc;
         }
-        // rectangle(image_for_display, second_ROI_matchLoc, Point(second_ROI_matchLoc.x + second_ROI_template.cols, second_ROI_matchLoc.y + second_ROI_template.rows), Scalar(255, 0, 0), 3, 8, 0);
         rectangle(image_for_display, second_ROI_matchLoc, Point(second_ROI_matchLoc.x + second_ROI_template.cols, second_ROI_matchLoc.y + second_ROI_template.rows), Scalar(255, 0, 0), 3, 8, 0);
 
         // ***********************************
@@ -414,7 +418,7 @@ int main(int argc, char** argv)
 
         udpSendData[0] = std::sqrt((center_of_second_ROI.x - center_of_first_ROI.x) * (center_of_second_ROI.x - center_of_first_ROI.x));
         udpSendData[1] = std::sqrt((center_of_second_ROI.y - center_of_first_ROI.y) * (center_of_second_ROI.y - center_of_first_ROI.y));
-        //send.send(udpSendData); // ******* ONLY COMMENTED FOR TESTING ON PERSONAL COMPUTER *******
+        send.send(udpSendData); // ******* ONLY COMMENTED FOR TESTING ON PERSONAL COMPUTER *******
         
 
 
