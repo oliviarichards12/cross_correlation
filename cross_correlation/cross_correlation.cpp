@@ -201,7 +201,7 @@ int main(int argc, char** argv)
     // ***********************************
 
 
-
+    counter = 0;
 
     // ******* MAIN LOOP FOR SEGMENTATION AND ROI COMPARISON ********
 
@@ -295,6 +295,13 @@ int main(int argc, char** argv)
             first_ROI_template = filteredScreenshotImage(ROIs[0]);
             first_ROI_defined = true;
         }
+
+
+        // Update the template every 10 iterations
+        if (counter % 20 == 0) {
+            first_ROI_template = filteredScreenshotImage(ROIs[0]);
+        }
+
         // ***********************************
 
 
@@ -365,6 +372,17 @@ int main(int argc, char** argv)
             second_ROI_defined = true;
         }
 
+        // Update the template every 10 iterations
+        if (second_ROI_defined && counter % 20 == 0) {
+            // Rect(int left, int top, int right, int bottom);
+            
+            Rect updated_template_second_ROI = Rect(Point(center_of_second_ROI.x, center_of_second_ROI.y), Point(center_of_second_ROI.x + ROIs[1].width, center_of_second_ROI.y + ROIs[1].height));
+            second_ROI_template = filteredScreenshotImage(updated_template_second_ROI);
+            // Define the center of the second region of interest
+            center_of_second_ROI.x = second_ROI_matchLoc.x + second_ROI_template.cols / 2;
+            center_of_second_ROI.y = second_ROI_matchLoc.y + second_ROI_template.rows / 2;
+        }
+
         // Template matching - Second ROI
 
         if (!areROIsOverlapped) {
@@ -374,7 +392,14 @@ int main(int argc, char** argv)
             second_ROI_matchLoc = second_ROI_maxLoc;
         }
         rectangle(image_for_display, second_ROI_matchLoc, Point(second_ROI_matchLoc.x + second_ROI_template.cols, second_ROI_matchLoc.y + second_ROI_template.rows), Scalar(255, 0, 0), 3, 8, 0);
+        
+        // Extended center line
+        //if()
+        line(image_for_display, Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y + second_ROI_template.rows / 2), Point(second_ROI_matchLoc.x + 500, second_ROI_matchLoc.y + second_ROI_template.rows / 2), Scalar(0,255, 0), 3, 8, 0);
+        
+        // Check if overlapping
 
+        
         // ***********************************
 
 
@@ -432,13 +457,13 @@ int main(int argc, char** argv)
         // t_duration = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - t_start).count();
 
         // Update the counter
-        // counter++;
+        counter++;
 
         // print the freq of loop execution
-        /*if (counter == 20) {
+        if (counter == 20) {
             cout << 1000 / t_duration << endl;
             counter = 0;
-        }*/
+        }
 
         // ***********************************
 
