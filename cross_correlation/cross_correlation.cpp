@@ -369,6 +369,8 @@ int main(int argc, char** argv)
         if (!second_ROI_defined) {
             ROIs[1] = selectROI(windowName, image_for_display, true, false);
             second_ROI_template = filteredScreenshotImage(ROIs[1]);
+            second_ROI_matchLoc.x = ROIs[1].x;
+            second_ROI_matchLoc.y = ROIs[1].y;
             second_ROI_defined = true;
         }
 
@@ -376,11 +378,9 @@ int main(int argc, char** argv)
         if (second_ROI_defined && counter % 20 == 0) {
             // Rect(int left, int top, int right, int bottom);
             
-            Rect updated_template_second_ROI = Rect(Point(center_of_second_ROI.x, center_of_second_ROI.y), Point(center_of_second_ROI.x + ROIs[1].width, center_of_second_ROI.y + ROIs[1].height));
+            Rect updated_template_second_ROI = Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height));
             second_ROI_template = filteredScreenshotImage(updated_template_second_ROI);
-            // Define the center of the second region of interest
-            center_of_second_ROI.x = second_ROI_matchLoc.x + second_ROI_template.cols / 2;
-            center_of_second_ROI.y = second_ROI_matchLoc.y + second_ROI_template.rows / 2;
+
         }
 
         // Template matching - Second ROI
