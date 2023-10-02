@@ -297,10 +297,11 @@ int main(int argc, char** argv)
         }
 
 
-        // Update the template every 10 iterations
-        if (counter % 20 == 0) {
-            first_ROI_template = filteredScreenshotImage(ROIs[0]);
-        }
+        //// Update the template every 10 iterations
+        // This is wrong. It needs to 
+        //if (counter % 20 == 0) {
+        //    first_ROI_template = filteredScreenshotImage(ROIs[0]);
+        //}
 
         // ***********************************
 
@@ -352,7 +353,6 @@ int main(int argc, char** argv)
         // first_ROI_matchLoc = first_ROI_maxLoc;
         // rectangle(image_for_display, first_ROI_matchLoc, Point(first_ROI_matchLoc.x + first_ROI_template.cols, first_ROI_matchLoc.y + first_ROI_template.rows), Scalar(0, 0, 255), 3, 8, 0);
 
-        //rectangle(image_for_display, Point(ROIs[0].x, ROIs[0].y), Point(ROIs[0].x + ROIs[0].width, ROIs[0].y + ROIs[0].height), Scalar(0, 0, 255), 3, 8, 0);
         rectangle(image_for_display, Point(ROIs[0].x, ROIs[0].y), Point(ROIs[0].x + ROIs[0].width, ROIs[0].y + ROIs[0].height), Scalar(0, 0, 255), 3, 8, 0);
 
 
@@ -374,17 +374,18 @@ int main(int argc, char** argv)
             second_ROI_defined = true;
         }
 
-        // Update the template every 10 iterations
-        if (second_ROI_defined && counter % 20 == 0) {
-            // Rect(int left, int top, int right, int bottom);
-            
-            Rect updated_template_second_ROI = Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height));
-            second_ROI_template = filteredScreenshotImage(updated_template_second_ROI);
+        //// Update the template every 10 iterations
+        //if (second_ROI_defined && counter == 10) {
+        //    // Rect(int left, int top, int right, int bottom);
+        //    
+        //    Rect updated_template_second_ROI = Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height));
+        //    second_ROI_template = filteredScreenshotImage(updated_template_second_ROI);
 
-        }
+        //}
 
         // Template matching - Second ROI
-
+        // Need to change the matchTemplate() function to take an input of a cropped image. The cropped image will take a slightly enlarged region around the second ROI. This will be the searchable area. 
+        // Need to save the coordinates and figure out how to offset them in the new image.
         if (!areROIsOverlapped) {
             matchTemplate(filteredScreenshotImage, second_ROI_template, result, TM_CCORR_NORMED);
             normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
@@ -393,10 +394,7 @@ int main(int argc, char** argv)
         }
         rectangle(image_for_display, second_ROI_matchLoc, Point(second_ROI_matchLoc.x + second_ROI_template.cols, second_ROI_matchLoc.y + second_ROI_template.rows), Scalar(255, 0, 0), 3, 8, 0);
         
-        // Extended center line
-        //if()
-        line(image_for_display, Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y + second_ROI_template.rows / 2), Point(second_ROI_matchLoc.x + 500, second_ROI_matchLoc.y + second_ROI_template.rows / 2), Scalar(0,255, 0), 3, 8, 0);
-        
+
         // Check if overlapping
 
         
