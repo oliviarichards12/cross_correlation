@@ -269,16 +269,29 @@ int main(int argc, char** argv)
 
         // ******* IMAGE AUGMENTATIONS (FILTERS) *******
 
-        // Applying Gaussian filter
-        // Gaussian filter parameters
-        // Default filter (Gaussian kernel) size is defined as: 2*ceil(2*sigma)+1
-        // Following section of code mimics MATLAB's imgaussfilt() function
+        /*
+            Applying Gaussian filter
+            Gaussian filter parameters
+            Default filter (Gaussian kernel) size is defined as: 2*ceil(2*sigma)+1
+            Following section of code mimics MATLAB's imgaussfilt() function
+        
+        */
+
 
         Mat filteredScreenshotImage;
-        Mat cimg;
+        Mat image_medblur;
+        Mat image_bifilter;
+
         double sigma = 1; // Standard deviation of Gaussian filter
         int FilterSize = 2 * (int)ceil(2 * sigma) + 1; // Size of the Gaussian kernel, FilterSize x FilterSize
-        GaussianBlur(grayScreenshotImage, filteredScreenshotImage, Size(FilterSize, FilterSize), 0);
+        //GaussianBlur(grayScreenshotImage, filteredScreenshotImage, Size(FilterSize, FilterSize), 0);
+        
+        bilateralFilter(grayScreenshotImage, image_bifilter, 15, 80, 80);
+        threshold(image_bifilter, filteredScreenshotImage, 95, 0, THRESH_TOZERO);
+       
+
+        //imshow("Test_Image", filteredScreenshotImage);
+
 
         // ***********************************
 
@@ -287,8 +300,13 @@ int main(int argc, char** argv)
 
 
         // ******* FIRST ROI MATCHING *******
-
-        // Select first ROI
+        
+        /*
+            Select first ROI  
+            
+            NEEDS TEMPLATE UPDATING
+        */
+        
 
         if (!first_ROI_defined) {
             ROIs[0] = selectROI(windowName, image_for_display, true, false);
@@ -297,11 +315,6 @@ int main(int argc, char** argv)
         }
 
 
-        //// Update the template every 10 iterations
-        // This is wrong. It needs to 
-        //if (counter % 20 == 0) {
-        //    first_ROI_template = filteredScreenshotImage(ROIs[0]);
-        //}
 
         // ***********************************
 
@@ -311,6 +324,12 @@ int main(int argc, char** argv)
 
 
         // ******* Needle Tip Overlay *******
+        
+        /*
+            NEEDS WORK. X-OFFSET STILL INCORRECT
+        
+        */
+
 
         //Mat thresh_ROI = first_ROI_template > 100;
 
@@ -374,38 +393,49 @@ int main(int argc, char** argv)
             second_ROI_defined = true;
         }
 
-        //// Update the template every 10 iterations
-        //if (second_ROI_defined && counter == 10) {
-        //    // Rect(int left, int top, int right, int bottom);
-        //    
-        //    Rect updated_template_second_ROI = Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height));
-        //    second_ROI_template = filteredScreenshotImage(updated_template_second_ROI);
 
-        //}
 
-        // Template matching - Second ROI
-        // Need to change the matchTemplate() function to take an input of a cropped image. The cropped image will take a slightly enlarged region around the second ROI. This will be the searchable area. 
-        // Need to save the coordinates and figure out how to offset them in the new image.
-        
-        
-        /*if (!areROIsOverlapped) {
-            matchTemplate(filteredScreenshotImage, second_ROI_template, result, TM_CCORR_NORMED);
-            normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
-            minMaxLoc(result, &second_ROI_minVal, &second_ROI_maxVal, &second_ROI_minLoc, &second_ROI_maxLoc, Mat());
-            second_ROI_matchLoc = second_ROI_maxLoc;
-        }
-        rectangle(image_for_display, second_ROI_matchLoc, Point(second_ROI_matchLoc.x + second_ROI_template.cols, second_ROI_matchLoc.y + second_ROI_template.rows), Scalar(255, 0, 0), 3, 8, 0);
+        /*
+            Template matching - Second ROI
+            Need to change the matchTemplate() function to take an input of a cropped image. The cropped image will take a slightly enlarged region around the second ROI. This will be the searchable area. 
+            Need to save the coordinates and figure out how to offset them in the new image.
+
         */
 
-        Mat enlarged_ROI = filteredScreenshotImage; 
+        
+        // OLD VERSION
+        //if (!areROIsOverlapped) {
+        //    matchTemplate(filteredScreenshotImage, second_ROI_template, result, TM_CCORR_NORMED);
+        //    normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
+        //    minMaxLoc(result, &second_ROI_minVal, &second_ROI_maxVal, &second_ROI_minLoc, &second_ROI_maxLoc, Mat());
+        //    second_ROI_matchLoc = second_ROI_maxLoc;
+        //}
+        //rectangle(image_for_display, second_ROI_matchLoc, Point(second_ROI_matchLoc.x + second_ROI_template.cols, second_ROI_matchLoc.y + second_ROI_template.rows), Scalar(255, 0, 0), 3, 8, 0);
+        //
+        
+        
+        int margin_size = 50; // number of pixels around the ROI to search for a match
+        Rect enlarged_second_ROI = Rect(Point(second_ROI_matchLoc.x - margin_size/2, second_ROI_matchLoc.y - margin_size), Point(second_ROI_matchLoc.x + ROIs[1].width + margin_size/2, second_ROI_matchLoc.y + ROIs[1].height + margin_size));
+        Mat second_ROI_search_region = filteredScreenshotImage(enlarged_second_ROI);
+        
         if (!areROIsOverlapped) {
-            matchTemplate(enlarged_ROI, second_ROI_template, result, TM_CCORR_NORMED);
+            matchTemplate(second_ROI_search_region, second_ROI_template, result, TM_CCORR_NORMED);
             normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
             minMaxLoc(result, &second_ROI_minVal, &second_ROI_maxVal, &second_ROI_minLoc, &second_ROI_maxLoc, Mat());
-            cout << second_ROI_maxLoc << endl;
-            second_ROI_matchLoc = second_ROI_maxLoc;
+            second_ROI_matchLoc = second_ROI_maxLoc + Point(second_ROI_matchLoc.x - margin_size/2, second_ROI_matchLoc.y - margin_size);
+            ////template updating
+            //if(counter==19){
+            //    second_ROI_template = filteredScreenshotImage(Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height)));
+            //}
+            
         }
         rectangle(image_for_display, second_ROI_matchLoc, Point(second_ROI_matchLoc.x + second_ROI_template.cols, second_ROI_matchLoc.y + second_ROI_template.rows), Scalar(255, 0, 0), 3, 8, 0);
+
+
+
+
+
+
 
 
         // Check if overlapping
