@@ -386,14 +386,27 @@ int main(int argc, char** argv)
         // Template matching - Second ROI
         // Need to change the matchTemplate() function to take an input of a cropped image. The cropped image will take a slightly enlarged region around the second ROI. This will be the searchable area. 
         // Need to save the coordinates and figure out how to offset them in the new image.
-        if (!areROIsOverlapped) {
+        
+        
+        /*if (!areROIsOverlapped) {
             matchTemplate(filteredScreenshotImage, second_ROI_template, result, TM_CCORR_NORMED);
             normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
             minMaxLoc(result, &second_ROI_minVal, &second_ROI_maxVal, &second_ROI_minLoc, &second_ROI_maxLoc, Mat());
             second_ROI_matchLoc = second_ROI_maxLoc;
         }
         rectangle(image_for_display, second_ROI_matchLoc, Point(second_ROI_matchLoc.x + second_ROI_template.cols, second_ROI_matchLoc.y + second_ROI_template.rows), Scalar(255, 0, 0), 3, 8, 0);
-        
+        */
+
+        Mat enlarged_ROI = filteredScreenshotImage; 
+        if (!areROIsOverlapped) {
+            matchTemplate(enlarged_ROI, second_ROI_template, result, TM_CCORR_NORMED);
+            normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
+            minMaxLoc(result, &second_ROI_minVal, &second_ROI_maxVal, &second_ROI_minLoc, &second_ROI_maxLoc, Mat());
+            cout << second_ROI_maxLoc << endl;
+            second_ROI_matchLoc = second_ROI_maxLoc;
+        }
+        rectangle(image_for_display, second_ROI_matchLoc, Point(second_ROI_matchLoc.x + second_ROI_template.cols, second_ROI_matchLoc.y + second_ROI_template.rows), Scalar(255, 0, 0), 3, 8, 0);
+
 
         // Check if overlapping
 
