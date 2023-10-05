@@ -415,18 +415,18 @@ int main(int argc, char** argv)
         
         
         int margin_size = 50; // number of pixels around the ROI to search for a match
-        Rect enlarged_second_ROI = Rect(Point(second_ROI_matchLoc.x - margin_size/2, second_ROI_matchLoc.y - margin_size), Point(second_ROI_matchLoc.x + ROIs[1].width + margin_size/2, second_ROI_matchLoc.y + ROIs[1].height + margin_size));
+        Rect enlarged_second_ROI = Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y - margin_size), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height + margin_size));
         Mat second_ROI_search_region = filteredScreenshotImage(enlarged_second_ROI);
         
         if (!areROIsOverlapped) {
             matchTemplate(second_ROI_search_region, second_ROI_template, result, TM_CCORR_NORMED);
             normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
             minMaxLoc(result, &second_ROI_minVal, &second_ROI_maxVal, &second_ROI_minLoc, &second_ROI_maxLoc, Mat());
-            second_ROI_matchLoc = second_ROI_maxLoc + Point(second_ROI_matchLoc.x - margin_size/2, second_ROI_matchLoc.y - margin_size);
-            ////template updating
-            //if(counter==19){
-            //    second_ROI_template = filteredScreenshotImage(Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height)));
-            //}
+            second_ROI_matchLoc = second_ROI_maxLoc + Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y - margin_size);
+            //template updating
+            if(counter==100){
+                second_ROI_template = filteredScreenshotImage(Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height)));
+            }
             
         }
         rectangle(image_for_display, second_ROI_matchLoc, Point(second_ROI_matchLoc.x + second_ROI_template.cols, second_ROI_matchLoc.y + second_ROI_template.rows), Scalar(255, 0, 0), 3, 8, 0);
@@ -501,8 +501,8 @@ int main(int argc, char** argv)
         counter++;
 
         // print the freq of loop execution
-        if (counter == 20) {
-            cout << 1000 / t_duration << endl;
+        if (counter == 101) {
+            //cout << 1000 / t_duration << endl;
             counter = 0;
         }
 
