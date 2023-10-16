@@ -250,7 +250,7 @@ int main(int argc, char** argv)
 
 
         // ******* CREATE SCREENSHOT *******
-
+         
         // Get the screenshot
         Mat screenshotImage = getMat(hWnd, x1, y1, x2, y2); // uses the active window handle and the desired window size (dimensions)
 
