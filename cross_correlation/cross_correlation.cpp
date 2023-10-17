@@ -24,24 +24,17 @@ using namespace std;// not good, just use std every time.
 bool first_ROI_defined = false;
 bool second_ROI_defined = false;
 
-// Variables related to defining the cropping region for the screen shot
-// int clippingRegionX, clippingRegionY, clippingRegionWidth, clippingRegionHeight;
-// Pen selectPen; 
-// bool start = false; 
 
 // Vriables for measuring UDP send freq
 // clock_t start;
 double t_duration;
-int counter;
+int counter=0;
 
 Mat getMat(HWND hWnd, int x1, int y1, int x2, int y2) {
-    // HRGN hClpRgn = CreateRectRgn(x1,y1,x2,y2);
-    // HDC hScreen = GetDCEx(hWnd, hClpRgn, DCX_INTERSECTRGN);
+
     HDC hScreen = GetDC(hWnd);
     HDC hDC = CreateCompatibleDC(hScreen);
     
-    // RECT windowRect;
-    // GetClientRect(hWnd,&windowRect);
 
     int height = y2 - y1; // windowRect.bottom;
     int width = x2 - x1; // windowRect.right;
@@ -49,16 +42,6 @@ Mat getMat(HWND hWnd, int x1, int y1, int x2, int y2) {
     HBITMAP hBitmap = CreateCompatibleBitmap(hScreen, width, height);
     SelectObject(hDC, hBitmap);
     
-    // BitBlt(HDC hdc,int x,int y,int cx,int cy,HDC hdcSrc,int x1,int y1,DWORD rop)
-    // hdc = A handle to the destination device context
-    // x = The x-coordinate, in logical units, of the upper-left corner of the destination rectangle
-    // y = The y-coordinate, in logical units, of the upper-left corner of the destination rectangle
-    // cx = The width, in logical units, of the source and destination rentangles
-    // cy = The height, in logical units, of the source and destination rectangles
-    // hdcSrc = A handle to the source device context
-    // x1 = The x-coordinate, in logical units, of the upper-left corner of the source rectangle
-    // y1 = The y-coordinate, in logical units, of the upper-left corner of the source rectangle
-    // rop = A raster-operation code -- SRCCOPY = Copies the source rectangle directly to the destination rectangle
     BitBlt(hDC, 0, 0, width, height, hScreen, x1, y1, SRCCOPY);
 
     BITMAPINFOHEADER bi;
@@ -87,12 +70,18 @@ Mat getMat(HWND hWnd, int x1, int y1, int x2, int y2) {
 
 int main(int argc, char** argv)
 {
-    // ****** UDP Communications ****** ONLY COMMENTED FOR TESTING ON PERSONAL COMPUTER 
+    // ****** UDP Communications ****** 
+    /*
+        Note: 
+            - ONLY COMMENT FOR TESTING ON PERSONAL COMPUTER
+            - Figure out what the syntax is for using UDP connection. What is the IP adress for?? How to set it??
+    
+    */
 
-    //cu::robotics::RobotCommSend send;
-    //cu::robotics::RobotCommReceive recv;
-    //send.initialize("192.168.1.100",27000);
-    //recv.initialize(27001);
+    cu::robotics::RobotCommSend send; // <========= UDP VARIABLE
+    cu::robotics::RobotCommReceive recv;
+    send.initialize("192.168.1.100", 25041);
+    recv.initialize(27001);
 
     // ***********************************
 
@@ -115,9 +104,17 @@ int main(int argc, char** argv)
 
 
     // ******  GET A SCREENSHOT ****** 
+    /*
+        Notes:
+            - LPCWTSR is a 32-bit pointer to a constant string of 16-bit Unicode characters .. typedef const wchar_t* LPCWSTR
+    */
 
-     //LPCWSTR windowTitle = L"cross_correlation - Microsoft Visual Studio Current"; // LPCWTSR is a 32-bit pointer to a constant string of 16-bit Unicode characters .. typedef const wchar_t* LPCWSTR
-    LPCWSTR windowTitle = L"20223_08_16_exvivo_pig_cropped.mp4 - VLC media player"; // LPCWTSR is a 32-bit pointer to a constant string of 16-bit Unicode characters .. typedef const wchar_t* LPCWSTR
+    // *LIVE RUNS WITH OCT AND ROBOT*
+    LPCWSTR windowTitle = L"ThorImageOCT 5.2.1 - Vega";
+
+    // *LOCAL MACHINE TESTING*
+    //LPCWSTR windowTitle = L"20223_08_16_xvivo_pig_cropped.mp4 - VLC media player";
+    
     HWND hWnd = FindWindow(NULL, windowTitle);
 
     // ***********************************
@@ -126,30 +123,28 @@ int main(int argc, char** argv)
 
 
     // ****** CLIPPING REGION ******
+    /*
+        Notes: 
+            - Description: 
+                x1 = Specifies the x-coordinate of the upper-left corner of the region in logical units
+                y1 = Specifies the y-coordinate of the upper-left corner of the region in logical units
+                x2 = Specifies the x-coordinate of the lower-right corner of the region in logical units
+                y2 = Specifies the y-coordinate of the lower-right corner of the region in logical units
+    */
 
-    // x1 = Specifies the x-coordinate of the upper-left corner of the region in logical units
-    // y1 = Specifies the y-coordinate of the upper-left corner of the region in logical units
-    // x2 = Specifies the x-coordinate of the lower-right corner of the region in logical units
-    // y2 = Specifies the y-coordinate of the lower-right corner of the region in logical units
 
+    // *LIVE RUNS WITH OCT AND ROBOT*
+    int x1 = 450; // x-coord upper-left corner // 500
+    int y1 = 200; // y-coord upper-left corner // 500
+    int x2 = 1200; // x-coord lower-right corner // 1000
+    int y2 = 1000; // y-coord lower-right corner // 1000
 
-    // This is the window clipping region
-    //int x1 = 545; // x-coord upper-left corner // 500
-    //int y1 = 130; // y-coord upper-left corner // 500
-    //int x2 = 1425; // x-coord lower-right corner // 1000
-    //int y2 = 1000; // y-coord lower-right corner // 1000
+    // *LOCAL MACHINE TESTING*
+    //int x1 = 0; // x-coord upper-left corner // 500
+    //int y1 = 0; // y-coord upper-left corner // 500
+    //int x2 = 1500; // x-coord lower-right corner // 1000
+    //int y2 = 1500; // y-coord lower-right corner // 1000
 
-    // This is the window clipping region *FOR LOCAL MACHINE TESTING ONLY*
-     int x1 = 0; // x-coord upper-left corner // 500
-     int y1 = 0; // y-coord upper-left corner // 500
-     int x2 = 1500; // x-coord lower-right corner // 1000
-     int y2 = 1500; // y-coord lower-right corner // 1000
-
-    // TEMPORARY DEBUGGING VALUES
-     //int x1 = 600; // x-coord upper-left corner // 500
-     //int y1 = 100; // y-coord upper-left corner // 500
-     //int x2 = 1300; // x-coord lower-right corner // 1000
-     //int y2 = 600; // y-coord lower-right corner // 1000
 
     // ***********************************
 
@@ -167,7 +162,11 @@ int main(int argc, char** argv)
 
 
 
-    // ******  Second variable declaration for ROI templates and comparisons???? ****** MIGHT COMBIINE WITH THE FIRST SECTION
+    // ******  Second variable declaration for ROI templates and comparisons ****** 
+    /*
+        Notes: 
+            - MIGHT COMBIINE WITH THE FIRST SECTION
+    */
 
     vector<Rect> ROIs(2);
     Mat grayScreenshotImage;
@@ -183,31 +182,34 @@ int main(int argc, char** argv)
 
 
 
-    // ******  Appears to be some testing on the first ROI comparison ******** NEED TO BETTER UNDERSTAND BEFORE CHANGING
+    // ******* ROI correlation variables ****** 
+    /*
+        Notes:
+            - The first ROI variables are currently unused, may need for template matching in the future.
+    */
 
     // double first_ROI_minVal, first_ROI_maxVal;
     // Point first_ROI_minLoc, first_ROI_maxLoc, first_ROI_matchLoc;
-
-    // ***********************************
-
-
-
-
-    // ******* more variables for comparison speciffically for the second ROI values and locations ****** MIGHT COMBIINE WITH THE FIRST SECTION
-
     double second_ROI_minVal, second_ROI_maxVal;
     Point second_ROI_minLoc, second_ROI_maxLoc, second_ROI_matchLoc;
 
     // ***********************************
 
 
-    counter = 0;
+ 
+
 
     // ******* MAIN LOOP FOR SEGMENTATION AND ROI COMPARISON ********
 
     while (waitKey(1) != 113) { // Wait for ESC key press in the window for specified milliseconds -- 0 = forever
+        
 
-        // ****** CLOCK FOR CALCULATING PROGRAM EXECUTION TIME ****** Not necessary for every loop but helpful to have in the program
+        // ****** CLOCK FOR CALCULATING PROGRAM EXECUTION TIME ****** 
+
+        /*
+            Notes:
+                - Not necessary for every loop but helpful to have in the program
+        */
 
         // Start the clock
         // start = clock();
@@ -220,12 +222,18 @@ int main(int argc, char** argv)
 
         // ******* UDP MESSAGE RECEIVING *******
 
-        // Receive UDP messages from the target machine 
-        //recv.receive(udpRecvData); // ******* ONLY COMMENTED FOR TESTING ON PERSONAL COMPUTER *******
+        /*
+            Notes:
+                - COMMENT FOR TESTING ON PERSONAL COMPUTER
 
-        // The recieved UDP packet contains two values
-        // (1) dx = change in needle tip position along the x-axis of the image (value in px)
-        // (2) dy = change in needle tip position along the y-axis of the image (value in px)
+                - The recieved UDP packet contains two values
+                    (1) dx = change in needle tip position along the x-axis of the image (value in px)
+                    (2) dy = change in needle tip position along the y-axis of the image (value in px)
+
+        */
+
+        // Receive UDP messages from the target machine 
+        recv.receive(udpRecvData); // <========= UDP VARIABLE
 
         // ***********************************
 
@@ -235,14 +243,24 @@ int main(int argc, char** argv)
 
         // ******* MESSAGE PROCESSING *******
 
+        /*
+            Notes:
+                - IMPLEMENT ERROR HANDLING:
+                    If the packet size isn't the correct size, assign dx/dz to 0
+        */
+
+
         // This is some data from the robot, but we havent used it yet (the end effector speed)
         dx = static_cast<int>(udpRecvData[0]);
         dz = static_cast<int>(udpRecvData[1]);
 
-        // TODO: Check the units of these values (assumed px) Yes, conversion done on target machine
-        // TODO: Find out a solution to the UDP communication problem
+        //int dx = 0;
+        //int dz = 0;
 
-        //cout << dx << "," << dz << endl; // used this while testing the code
+
+        if (counter == 100) {
+            cout << dx << "," << dz << endl; // used this while testing the code
+        }
 
         // ***********************************
 
@@ -254,10 +272,8 @@ int main(int argc, char** argv)
         // Get the screenshot
         Mat screenshotImage = getMat(hWnd, x1, y1, x2, y2); // uses the active window handle and the desired window size (dimensions)
 
-        //// Get a copy of the screenshot for displaying
-        //screenshotImage.copyTo(image_for_display);
-
-        image_for_display = screenshotImage.clone();
+        // Get a copy of the screenshot for displaying
+        screenshotImage.copyTo(image_for_display);
 
         // Convert the BGR color screenshot into grayscale screenshot for processing
         cvtColor(screenshotImage, grayScreenshotImage, COLOR_BGR2GRAY);
@@ -270,10 +286,8 @@ int main(int argc, char** argv)
         // ******* IMAGE AUGMENTATIONS (FILTERS) *******
 
         /*
-            Applying Gaussian filter
-            Gaussian filter parameters
-            Default filter (Gaussian kernel) size is defined as: 2*ceil(2*sigma)+1
-            Following section of code mimics MATLAB's imgaussfilt() function
+            Notes: 
+               - Uses bilateral filter instead of GaussianBlur. Thresholds image to increase layer definition.
         
         */
 
@@ -282,10 +296,6 @@ int main(int argc, char** argv)
         Mat image_medblur;
         Mat image_bifilter;
 
-        double sigma = 1; // Standard deviation of Gaussian filter
-        int FilterSize = 2 * (int)ceil(2 * sigma) + 1; // Size of the Gaussian kernel, FilterSize x FilterSize
-        //GaussianBlur(grayScreenshotImage, filteredScreenshotImage, Size(FilterSize, FilterSize), 0);
-        
         bilateralFilter(grayScreenshotImage, image_bifilter, 15, 80, 80);
         threshold(image_bifilter, filteredScreenshotImage, 95, 0, THRESH_TOZERO);
        
@@ -299,12 +309,11 @@ int main(int argc, char** argv)
 
 
 
-        // ******* FIRST ROI MATCHING *******
+        // ******* FIRST ROI SETUP *******
         
         /*
-            Select first ROI  
-            
-            NEEDS TEMPLATE UPDATING
+            Notes: 
+                - TRY TEMPLATE UPDATING
         */
         
 
@@ -313,8 +322,6 @@ int main(int argc, char** argv)
             first_ROI_template = filteredScreenshotImage(ROIs[0]);
             first_ROI_defined = true;
         }
-
-
 
         // ***********************************
 
@@ -326,7 +333,8 @@ int main(int argc, char** argv)
         // ******* Needle Tip Overlay *******
         
         /*
-            NEEDS WORK. X-OFFSET STILL INCORRECT
+            Notes: 
+                - NEEDS WORK. X-OFFSET STILL INCORRECT
         
         */
 
@@ -364,7 +372,11 @@ int main(int argc, char** argv)
 
 
 
-        // Template matching - First ROI ******* MIGHT NOT NEED THIS IF THE RIGID TIP KEEPS THE NEEDLE FROM MOVING *******
+        // ******* TEMPLATE MATCHING: FIRST ROI ******* 
+        /*
+            Notes: 
+                - MIGHT NOT NEED THIS IF THE RIGID TIP KEEPS THE NEEDLE FROM MOVING
+        */
 
         // matchTemplate(filteredScreenshotImage, first_ROI_template, result, TM_CCORR_NORMED);
         // normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
@@ -381,9 +393,7 @@ int main(int argc, char** argv)
 
 
 
-        // ******* SECOND ROI MATCHING *******
-
-        // Select second ROI
+        // ******* SECOND ROI SETUP *******
 
         if (!second_ROI_defined) {
             ROIs[1] = selectROI(windowName, image_for_display, true, false);
@@ -393,28 +403,19 @@ int main(int argc, char** argv)
             second_ROI_defined = true;
         }
 
+        // ***********************************
 
 
+        
+       
+        // ******* TEMPLATE MATCHING: SECOND ROI ******* 
         /*
-            Template matching - Second ROI
-            Need to change the matchTemplate() function to take an input of a cropped image. The cropped image will take a slightly enlarged region around the second ROI. This will be the searchable area. 
-            Need to save the coordinates and figure out how to offset them in the new image.
-
+            Notes: 
+                - The search region needs to be offset by the robot movement sent through the UDP.
+                
         */
 
-        
-        // OLD VERSION
-        //if (!areROIsOverlapped) {
-        //    matchTemplate(filteredScreenshotImage, second_ROI_template, result, TM_CCORR_NORMED);
-        //    normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
-        //    minMaxLoc(result, &second_ROI_minVal, &second_ROI_maxVal, &second_ROI_minLoc, &second_ROI_maxLoc, Mat());
-        //    second_ROI_matchLoc = second_ROI_maxLoc;
-        //}
-        //rectangle(image_for_display, second_ROI_matchLoc, Point(second_ROI_matchLoc.x + second_ROI_template.cols, second_ROI_matchLoc.y + second_ROI_template.rows), Scalar(255, 0, 0), 3, 8, 0);
-        //
-        
-        
-        int margin_size = 50; // number of pixels around the ROI to search for a match
+        int margin_size = 50 + dz; // number of pixels around the ROI to search for a match adjusted according to the robot motion
         Rect enlarged_second_ROI = Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y - margin_size), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height + margin_size));
         Mat second_ROI_search_region = filteredScreenshotImage(enlarged_second_ROI);
         
@@ -423,6 +424,7 @@ int main(int argc, char** argv)
             normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
             minMaxLoc(result, &second_ROI_minVal, &second_ROI_maxVal, &second_ROI_minLoc, &second_ROI_maxLoc, Mat());
             second_ROI_matchLoc = second_ROI_maxLoc + Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y - margin_size);
+            
             //template updating
             if(counter==100){
                 second_ROI_template = filteredScreenshotImage(Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height)));
@@ -431,22 +433,13 @@ int main(int argc, char** argv)
         }
         rectangle(image_for_display, second_ROI_matchLoc, Point(second_ROI_matchLoc.x + second_ROI_template.cols, second_ROI_matchLoc.y + second_ROI_template.rows), Scalar(255, 0, 0), 3, 8, 0);
 
-
-
-
-
-
-
-
-        // Check if overlapping
-
         
         // ***********************************
 
 
 
 
-
+        // ******* CHECK IF ROIS OVERLAP *******
 
         // Define the center of the first region of interest 
 
@@ -475,20 +468,29 @@ int main(int argc, char** argv)
             areROIsOverlapped = false;
         }
 
+        // ***********************************
 
-        // Display the image
+
+
+
+        // ******* Display the image *******
+
         imshow(windowName, image_for_display); // Show the image inside the created window
         //imshow(windowName, cimg); // Show the image inside the created window
 
+        // ***********************************
 
 
-        // Send the distance between these two ROIs over UDP
 
+
+        // ******* UDP Send *******
+
+        // Sends the distance between these two ROIs over UDP
         udpSendData[0] = std::sqrt((center_of_second_ROI.x - center_of_first_ROI.x) * (center_of_second_ROI.x - center_of_first_ROI.x));
         udpSendData[1] = std::sqrt((center_of_second_ROI.y - center_of_first_ROI.y) * (center_of_second_ROI.y - center_of_first_ROI.y));
-        //send.send(udpSendData); // ******* ONLY COMMENTED FOR TESTING ON PERSONAL COMPUTER *******
+        //send.send(udpSendData); // <========= UDP VARIABLE
         
-
+        // ***********************************
 
 
 
@@ -524,13 +526,3 @@ int main(int argc, char** argv)
     return 0;
 }
  
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
