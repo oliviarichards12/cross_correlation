@@ -20,6 +20,10 @@
 using namespace cv;
 using namespace std;// not good, just use std every time.
 
+
+bool local_testing = true;
+
+
 // Variables related to defining region of interest for template matching
 bool first_ROI_defined = false;
 bool second_ROI_defined = false;
@@ -73,15 +77,17 @@ int main(int argc, char** argv)
     // ****** UDP Communications ****** 
     /*
         Note: 
-            - ONLY COMMENT FOR TESTING ON PERSONAL COMPUTER
             - Figure out what the syntax is for using UDP connection. What is the IP adress for?? How to set it??
     
     */
 
-    cu::robotics::RobotCommSend send; // <========= UDP VARIABLE
-    cu::robotics::RobotCommReceive recv;
-    send.initialize("192.168.1.100", 25041);
-    recv.initialize(27001);
+    if (!local_testing) {
+        cu::robotics::RobotCommSend send; // <========= UDP VARIABLE
+        cu::robotics::RobotCommReceive recv;
+        send.initialize("192.168.1.100", 25041);
+        recv.initialize(27001);
+    }
+
 
     // ***********************************
 
@@ -90,13 +96,43 @@ int main(int argc, char** argv)
 
     // ******  VARIABLE DECLARATION ****** 
 
+    // UDP com
     double udpSendData[2];
     double udpRecvData[2];
     int dx, dz; // Values in px
-    double distance_bw_ROIs;
-
+    
+    // ROI definition
     Point center_of_first_ROI;
     Point center_of_second_ROI;
+    vector<Rect> ROIs(2);
+    Mat first_ROI_template;
+    Mat second_ROI_template;
+    bool areROIsOverlapped = false;
+    Mat result;
+    double distance_bw_ROIs;
+
+    // ROI correlation variables (currently not using first ROI corr. var.)
+    // double first_ROI_minVal, first_ROI_maxVal;
+    // Point first_ROI_minLoc, first_ROI_maxLoc, first_ROI_matchLoc;
+    double second_ROI_minVal, second_ROI_maxVal;
+    Point second_ROI_minLoc, second_ROI_maxLoc, second_ROI_matchLoc;
+    int margin_size;
+    Rect enlarged_second_ROI;
+    Mat second_ROI_search_region;
+
+    // Clipping region
+    int x1;
+    int x2;
+    int y1;
+    int y2;
+
+    // Image capture
+    Mat screenshotImage;
+    Mat grayScreenshotImage;
+    Mat image_for_display;
+    Mat filteredScreenshotImage;
+    Mat image_medblur;
+    Mat image_bifilter;
 
     // ***********************************
 
@@ -108,12 +144,14 @@ int main(int argc, char** argv)
         Notes:
             - LPCWTSR is a 32-bit pointer to a constant string of 16-bit Unicode characters .. typedef const wchar_t* LPCWSTR
     */
+    LPCWSTR windowTitle;
 
-    // *LIVE RUNS WITH OCT AND ROBOT*
-    LPCWSTR windowTitle = L"ThorImageOCT 5.2.1 - Vega";
-
-    // *LOCAL MACHINE TESTING*
-    //LPCWSTR windowTitle = L"20223_08_16_xvivo_pig_cropped.mp4 - VLC media player";
+    if (local_testing) {
+        windowTitle = L"20223_08_16_xvivo_pig_cropped.mp4 - VLC media player";
+    }
+    else {
+        windowTitle = L"ThorImageOCT 5.2.1 - Vega";
+    }
     
     HWND hWnd = FindWindow(NULL, windowTitle);
 
@@ -133,18 +171,19 @@ int main(int argc, char** argv)
     */
 
 
-    // *LIVE RUNS WITH OCT AND ROBOT*
-    int x1 = 450; // x-coord upper-left corner // 500
-    int y1 = 200; // y-coord upper-left corner // 500
-    int x2 = 1200; // x-coord lower-right corner // 1000
-    int y2 = 1000; // y-coord lower-right corner // 1000
 
-    // *LOCAL MACHINE TESTING*
-    //int x1 = 0; // x-coord upper-left corner // 500
-    //int y1 = 0; // y-coord upper-left corner // 500
-    //int x2 = 1500; // x-coord lower-right corner // 1000
-    //int y2 = 1500; // y-coord lower-right corner // 1000
-
+    if (local_testing) {
+        x1 = 0; // x-coord upper-left corner // 500
+        y1 = 0; // y-coord upper-left corner // 500
+        x2 = 1500; // x-coord lower-right corner // 1000
+        y2 = 1500; // y-coord lower-right corner // 1000
+    }
+    else {
+        x1 = 450; // x-coord upper-left corner // 500
+        y1 = 200; // y-coord upper-left corner // 500
+        x2 = 1200; // x-coord lower-right corner // 1000
+        y2 = 1000; // y-coord lower-right corner // 1000
+    }
 
     // ***********************************
 
@@ -158,44 +197,6 @@ int main(int argc, char** argv)
 
     // ***********************************
 
-
-
-
-
-    // ******  Second variable declaration for ROI templates and comparisons ****** 
-    /*
-        Notes: 
-            - MIGHT COMBIINE WITH THE FIRST SECTION
-    */
-
-    vector<Rect> ROIs(2);
-    Mat grayScreenshotImage;
-    Mat image_for_display;
-    Mat first_ROI_template;
-    Mat second_ROI_template;
-    bool areROIsOverlapped = false;
-    Mat result;
-
-    // ***********************************
-
-
-
-
-
-    // ******* ROI correlation variables ****** 
-    /*
-        Notes:
-            - The first ROI variables are currently unused, may need for template matching in the future.
-    */
-
-    // double first_ROI_minVal, first_ROI_maxVal;
-    // Point first_ROI_minLoc, first_ROI_maxLoc, first_ROI_matchLoc;
-    double second_ROI_minVal, second_ROI_maxVal;
-    Point second_ROI_minLoc, second_ROI_maxLoc, second_ROI_matchLoc;
-
-    // ***********************************
-
-
  
 
 
@@ -205,7 +206,6 @@ int main(int argc, char** argv)
         
 
         // ****** CLOCK FOR CALCULATING PROGRAM EXECUTION TIME ****** 
-
         /*
             Notes:
                 - Not necessary for every loop but helpful to have in the program
@@ -221,7 +221,6 @@ int main(int argc, char** argv)
 
 
         // ******* UDP MESSAGE RECEIVING *******
-
         /*
             Notes:
                 - COMMENT FOR TESTING ON PERSONAL COMPUTER
@@ -232,8 +231,11 @@ int main(int argc, char** argv)
 
         */
 
-        // Receive UDP messages from the target machine 
-        recv.receive(udpRecvData); // <========= UDP VARIABLE
+        if (!local_testing) {
+            // Receive UDP messages from the target machine
+            recv.receive(udpRecvData);
+        }
+         
 
         // ***********************************
 
@@ -242,24 +244,24 @@ int main(int argc, char** argv)
 
 
         // ******* MESSAGE PROCESSING *******
-
         /*
             Notes:
                 - IMPLEMENT ERROR HANDLING:
                     If the packet size isn't the correct size, assign dx/dz to 0
         */
 
+        if (local_testing) {
+            dx = 0;
+            dz = 0;
+        }
+        else {
+            // This is some data from the robot, but we havent used it yet (the end effector speed)
+            dx = static_cast<int>(udpRecvData[0]);
+            dz = static_cast<int>(udpRecvData[1]);
 
-        // This is some data from the robot, but we havent used it yet (the end effector speed)
-        dx = static_cast<int>(udpRecvData[0]);
-        dz = static_cast<int>(udpRecvData[1]);
-
-        //int dx = 0;
-        //int dz = 0;
-
-
-        if (counter == 100) {
-            cout << dx << "," << dz << endl; // used this while testing the code
+            if (counter == 100) {
+                cout << dx << "," << dz << endl; // used this while testing the code
+            }
         }
 
         // ***********************************
@@ -270,7 +272,7 @@ int main(int argc, char** argv)
         // ******* CREATE SCREENSHOT *******
          
         // Get the screenshot
-        Mat screenshotImage = getMat(hWnd, x1, y1, x2, y2); // uses the active window handle and the desired window size (dimensions)
+        screenshotImage = getMat(hWnd, x1, y1, x2, y2); // uses the active window handle and the desired window size (dimensions)
 
         // Get a copy of the screenshot for displaying
         screenshotImage.copyTo(image_for_display);
@@ -284,22 +286,16 @@ int main(int argc, char** argv)
 
 
         // ******* IMAGE AUGMENTATIONS (FILTERS) *******
-
         /*
             Notes: 
                - Uses bilateral filter instead of GaussianBlur. Thresholds image to increase layer definition.
         
         */
 
-
-        Mat filteredScreenshotImage;
-        Mat image_medblur;
-        Mat image_bifilter;
-
         bilateralFilter(grayScreenshotImage, image_bifilter, 15, 80, 80);
         threshold(image_bifilter, filteredScreenshotImage, 95, 0, THRESH_TOZERO);
        
-
+        // Troubleshooting: shows the image that is being used to do the cross-correlation
         //imshow("Test_Image", filteredScreenshotImage);
 
 
@@ -310,12 +306,10 @@ int main(int argc, char** argv)
 
 
         // ******* FIRST ROI SETUP *******
-        
         /*
             Notes: 
                 - TRY TEMPLATE UPDATING
         */
-        
 
         if (!first_ROI_defined) {
             ROIs[0] = selectROI(windowName, image_for_display, true, false);
@@ -330,14 +324,12 @@ int main(int argc, char** argv)
 
 
 
-        // ******* Needle Tip Overlay *******
-        
+        // ******* NEEDLE TIP OVERLAY *******
         /*
             Notes: 
                 - NEEDS WORK. X-OFFSET STILL INCORRECT
         
         */
-
 
         //Mat thresh_ROI = first_ROI_template > 100;
 
@@ -415,9 +407,9 @@ int main(int argc, char** argv)
                 
         */
 
-        int margin_size = 50 + dz; // number of pixels around the ROI to search for a match adjusted according to the robot motion
-        Rect enlarged_second_ROI = Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y - margin_size), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height + margin_size));
-        Mat second_ROI_search_region = filteredScreenshotImage(enlarged_second_ROI);
+        margin_size = 50 + dz; // number of pixels around the ROI to search for a match adjusted according to the robot motion
+        enlarged_second_ROI = Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y - margin_size), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height + margin_size));
+        second_ROI_search_region = filteredScreenshotImage(enlarged_second_ROI);
         
         if (!areROIsOverlapped) {
             matchTemplate(second_ROI_search_region, second_ROI_template, result, TM_CCORR_NORMED);
@@ -473,7 +465,7 @@ int main(int argc, char** argv)
 
 
 
-        // ******* Display the image *******
+        // ******* DISPLAY IMAGE *******
 
         imshow(windowName, image_for_display); // Show the image inside the created window
         //imshow(windowName, cimg); // Show the image inside the created window
@@ -483,7 +475,7 @@ int main(int argc, char** argv)
 
 
 
-        // ******* UDP Send *******
+        // ******* UDP SEND *******
 
         // Sends the distance between these two ROIs over UDP
         udpSendData[0] = std::sqrt((center_of_second_ROI.x - center_of_first_ROI.x) * (center_of_second_ROI.x - center_of_first_ROI.x));
@@ -514,10 +506,6 @@ int main(int argc, char** argv)
     }
 
     // ***********************************
-
-
-
-
 
 
 
