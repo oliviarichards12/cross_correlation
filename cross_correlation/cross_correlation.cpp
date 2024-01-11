@@ -74,29 +74,12 @@ Mat getMat(HWND hWnd, int x1, int y1, int x2, int y2) {
 
 int main(int argc, char** argv)
 {
-    // ****** UDP Communications ****** 
-    /*
-        Note: 
-            - Figure out what the syntax is for using UDP connection. What is the IP adress for?? How to set it??
-    
-    */
-
-    if (!local_testing) {
-        cu::robotics::RobotCommSend send; // <========= UDP VARIABLE
-        cu::robotics::RobotCommReceive recv;
-        send.initialize("192.168.1.100", 25041);
-        recv.initialize(27001);
-    }
-
-
-    // ***********************************
-
-
-
 
     // ******  VARIABLE DECLARATION ****** 
 
     // UDP com
+    cu::robotics::RobotCommSend send;
+    cu::robotics::RobotCommReceive recv;
     double udpSendData[2];
     double udpRecvData[2];
     int dx, dz; // Values in px
@@ -130,12 +113,27 @@ int main(int argc, char** argv)
     Mat screenshotImage;
     Mat grayScreenshotImage;
     Mat image_for_display;
-    Mat filteredScreenshotImage;
-    Mat image_medblur;
-    Mat image_bifilter;
+
 
     // ***********************************
 
+
+
+
+
+    // ****** UDP Communications ****** 
+    /*
+        Note:
+            - Figure out what the syntax is for using UDP connection. What is the IP adress for?? How to set it??
+    */
+
+    if (!local_testing) {
+        send.initialize("192.168.1.100", 25041);
+        recv.initialize(27001);
+    }
+
+
+    // ***********************************
 
 
 
@@ -147,7 +145,7 @@ int main(int argc, char** argv)
     LPCWSTR windowTitle;
 
     if (local_testing) {
-        windowTitle = L"20223_08_16_xvivo_pig_cropped.mp4 - VLC media player";
+        windowTitle = L"20223_08_16_exvivo_pig_cropped.mp4 - VLC media player";
     }
     else {
         windowTitle = L"ThorImageOCT 5.2.1 - Vega";
@@ -259,9 +257,9 @@ int main(int argc, char** argv)
             dx = static_cast<int>(udpRecvData[0]);
             dz = static_cast<int>(udpRecvData[1]);
 
-            if (counter == 100) {
-                cout << dx << "," << dz << endl; // used this while testing the code
-            }
+            //if (counter == 100) {
+            //    cout << dx << "," << dz << endl; // used this while testing the code
+            //}
         }
 
         // ***********************************
@@ -272,7 +270,7 @@ int main(int argc, char** argv)
         // ******* CREATE SCREENSHOT *******
          
         // Get the screenshot
-        screenshotImage = getMat(hWnd, x1, y1, x2, y2); // uses the active window handle and the desired window size (dimensions)
+        Mat screenshotImage = getMat(hWnd, x1, y1, x2, y2); // uses the active window handle and the desired window size (dimensions)
 
         // Get a copy of the screenshot for displaying
         screenshotImage.copyTo(image_for_display);
@@ -291,6 +289,9 @@ int main(int argc, char** argv)
                - Uses bilateral filter instead of GaussianBlur. Thresholds image to increase layer definition.
         
         */
+        Mat filteredScreenshotImage;
+        Mat image_medblur;
+        Mat image_bifilter;
 
         bilateralFilter(grayScreenshotImage, image_bifilter, 15, 80, 80);
         threshold(image_bifilter, filteredScreenshotImage, 95, 0, THRESH_TOZERO);
@@ -407,18 +408,21 @@ int main(int argc, char** argv)
                 
         */
 
-        margin_size = 50 + dz; // number of pixels around the ROI to search for a match adjusted according to the robot motion
-        enlarged_second_ROI = Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y - margin_size), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height + margin_size));
+        margin_size = 50; // number of pixels around the ROI to search for a match adjusted according to the robot motion
+        enlarged_second_ROI = Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y - margin_size + dz), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height + margin_size + dz));
         second_ROI_search_region = filteredScreenshotImage(enlarged_second_ROI);
         
         if (!areROIsOverlapped) {
             matchTemplate(second_ROI_search_region, second_ROI_template, result, TM_CCORR_NORMED);
-            normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
+            //normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
             minMaxLoc(result, &second_ROI_minVal, &second_ROI_maxVal, &second_ROI_minLoc, &second_ROI_maxLoc, Mat());
+            if (counter %10 == 0) {
+                cout << "Match score: "<< second_ROI_maxVal << endl; 
+            }
             second_ROI_matchLoc = second_ROI_maxLoc + Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y - margin_size);
             
-            //template updating
-            if(counter==100){
+            // template updating
+            if(counter % 10 == 0 && second_ROI_maxVal > 0.8){
                 second_ROI_template = filteredScreenshotImage(Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height)));
             }
             
@@ -476,12 +480,14 @@ int main(int argc, char** argv)
 
 
         // ******* UDP SEND *******
-
-        // Sends the distance between these two ROIs over UDP
-        udpSendData[0] = std::sqrt((center_of_second_ROI.x - center_of_first_ROI.x) * (center_of_second_ROI.x - center_of_first_ROI.x));
-        udpSendData[1] = std::sqrt((center_of_second_ROI.y - center_of_first_ROI.y) * (center_of_second_ROI.y - center_of_first_ROI.y));
-        //send.send(udpSendData); // <========= UDP VARIABLE
         
+        //if (!local_testing) {
+        //    // Sends the distance between these two ROIs over UDP
+        //    udpSendData[0] = std::sqrt((center_of_second_ROI.x - center_of_first_ROI.x) * (center_of_second_ROI.x - center_of_first_ROI.x));
+        //    udpSendData[1] = std::sqrt((center_of_second_ROI.y - center_of_first_ROI.y) * (center_of_second_ROI.y - center_of_first_ROI.y));
+        //    send.send(udpSendData);
+        //}
+                
         // ***********************************
 
 
