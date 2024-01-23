@@ -21,7 +21,7 @@ using namespace cv;
 using namespace std;// not good, just use std every time.
 
 
-bool local_testing = true;
+bool local_testing = false;
 
 
 // Variables related to defining region of interest for template matching
@@ -129,7 +129,7 @@ int main(int argc, char** argv)
 
     if (!local_testing) {
         send.initialize("192.168.1.100", 25041);
-        recv.initialize(27001);
+        //recv.initialize(27001);
     }
 
 
@@ -231,7 +231,7 @@ int main(int argc, char** argv)
 
         if (!local_testing) {
             // Receive UDP messages from the target machine
-            recv.receive(udpRecvData);
+            //recv.receive(udpRecvData);
         }
          
 
@@ -332,32 +332,32 @@ int main(int argc, char** argv)
         
         */
 
-        //Mat thresh_ROI = first_ROI_template > 100;
+        Mat thresh_ROI = first_ROI_template > 100;
 
-        //for (uint16_t j = 0; j < ROIs[0].height; ++j) {
-        //    for (uint16_t i = 0; i < ROIs[0].width; ++i) {
-        //       
+        for (uint16_t j = 0; j < ROIs[0].height; ++j) {
+            for (uint16_t i = 0; i < ROIs[0].width; ++i) {
+               
 
-        //        if (thresh_ROI.at<bool>(j, i) == 255) {
+                if (thresh_ROI.at<bool>(j, i) == 255) {
 
-        //            
-        //            //image_for_display.at<Vec3b>(ROIs[0].y+ j, 1.35*ROIs[0].x + i) = Vec3b(255, 255, 255);
-        //            image_for_display.at<Vec3b>(Point(ROIs[0].x + i, ROIs[0].y + j)) = Vec3b(255, 255, 255);
+                    
+                    image_for_display.at<Vec3b>(ROIs[0].y+ j, 1.35*ROIs[0].x + i) = Vec3b(255, 255, 255);
+                    //image_for_display.at<Vec3b>(Point(ROIs[0].x + i, ROIs[0].y + j)) = Vec3b(255, 255, 255);
 
-        //            //image_for_display[ROIs[0].y + j][ROIs[0].x + i] = (255, 255, 255);
-
-
-        //            /*cout << "point(" << ROIs[0].x + i << "," << ROIs[0].y + j << endl;
-        //            if (i % 10 == 0) {
-        //                circle(image_for_display, Point(ROIs[0].x+i, ROIs[0].y+j), 10, Scalar(0, 255, 0), 2);
-        //            }*/
-        //        }         
-        //    }
-
-        //}
+                    //image_for_display[ROIs[0].y + j][ROIs[0].x + i] = (255, 255, 255);
 
 
-        //imshow(windowName, image_for_display);
+                    /*cout << "point(" << ROIs[0].x + i << "," << ROIs[0].y + j << endl;
+                    if (i % 10 == 0) {
+                        circle(image_for_display, Point(ROIs[0].x+i, ROIs[0].y+j), 10, Scalar(0, 255, 0), 2);
+                    }*/
+                }         
+            }
+
+        }
+
+
+        imshow(windowName, image_for_display);
         
         // ***********************************
 
@@ -386,85 +386,85 @@ int main(int argc, char** argv)
 
 
 
-        // ******* SECOND ROI SETUP *******
+        //// ******* SECOND ROI SETUP *******
 
-        if (!second_ROI_defined) {
-            ROIs[1] = selectROI(windowName, image_for_display, true, false);
-            second_ROI_template = filteredScreenshotImage(ROIs[1]);
-            second_ROI_matchLoc.x = ROIs[1].x;
-            second_ROI_matchLoc.y = ROIs[1].y;
-            second_ROI_defined = true;
-        }
+        //if (!second_ROI_defined) {
+        //    ROIs[1] = selectROI(windowName, image_for_display, true, false);
+        //    second_ROI_template = filteredScreenshotImage(ROIs[1]);
+        //    second_ROI_matchLoc.x = ROIs[1].x;
+        //    second_ROI_matchLoc.y = ROIs[1].y;
+        //    second_ROI_defined = true;
+        //}
 
-        // ***********************************
+        //// ***********************************
 
 
-        
+        //
        
-        // ******* TEMPLATE MATCHING: SECOND ROI ******* 
-        /*
-            Notes: 
-                - The search region needs to be offset by the robot movement sent through the UDP.
-                
-        */
+        //// ******* TEMPLATE MATCHING: SECOND ROI ******* 
+        ///*
+        //    Notes: 
+        //        - The search region needs to be offset by the robot movement sent through the UDP.
+        //        
+        //*/
 
-        margin_size = 50; // number of pixels around the ROI to search for a match adjusted according to the robot motion
-        enlarged_second_ROI = Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y - margin_size + dz), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height + margin_size + dz));
-        second_ROI_search_region = filteredScreenshotImage(enlarged_second_ROI);
-        
-        if (!areROIsOverlapped) {
-            matchTemplate(second_ROI_search_region, second_ROI_template, result, TM_CCORR_NORMED);
-            //normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
-            minMaxLoc(result, &second_ROI_minVal, &second_ROI_maxVal, &second_ROI_minLoc, &second_ROI_maxLoc, Mat());
-            if (counter %10 == 0) {
-                cout << "Match score: "<< second_ROI_maxVal << endl; 
-            }
-            second_ROI_matchLoc = second_ROI_maxLoc + Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y - margin_size);
-            
-            // template updating
-            if(counter % 10 == 0 && second_ROI_maxVal > 0.8){
-                second_ROI_template = filteredScreenshotImage(Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height)));
-            }
-            
-        }
-        rectangle(image_for_display, second_ROI_matchLoc, Point(second_ROI_matchLoc.x + second_ROI_template.cols, second_ROI_matchLoc.y + second_ROI_template.rows), Scalar(255, 0, 0), 3, 8, 0);
+        //margin_size = 50; // number of pixels around the ROI to search for a match adjusted according to the robot motion
+        //enlarged_second_ROI = Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y - margin_size + dz), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height + margin_size + dz));
+        //second_ROI_search_region = filteredScreenshotImage(enlarged_second_ROI);
+        //
+        //if (!areROIsOverlapped) {
+        //    matchTemplate(second_ROI_search_region, second_ROI_template, result, TM_CCORR_NORMED);
+        //    //normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
+        //    minMaxLoc(result, &second_ROI_minVal, &second_ROI_maxVal, &second_ROI_minLoc, &second_ROI_maxLoc, Mat());
+        //    if (counter %10 == 0) {
+        //        cout << "Match score: "<< second_ROI_maxVal << endl; 
+        //    }
+        //    second_ROI_matchLoc = second_ROI_maxLoc + Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y - margin_size);
+        //    
+        //    // template updating
+        //    if(counter % 10 == 0 && second_ROI_maxVal > 0.8){
+        //        second_ROI_template = filteredScreenshotImage(Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height)));
+        //    }
+        //    
+        //}
+        //rectangle(image_for_display, second_ROI_matchLoc, Point(second_ROI_matchLoc.x + second_ROI_template.cols, second_ROI_matchLoc.y + second_ROI_template.rows), Scalar(255, 0, 0), 3, 8, 0);
 
-        
-        // ***********************************
-
-
+        //
+        //// ***********************************
 
 
-        // ******* CHECK IF ROIS OVERLAP *******
 
-        // Define the center of the first region of interest 
 
-        // center_of_first_ROI.x = first_ROI_matchLoc.x + first_ROI_template.cols / 2; // USE THIS IF USING TEMPLATE MATCHING WITH A MOBILE FIRST ROI
-        // center_of_first_ROI.y = first_ROI_matchLoc.y + first_ROI_template.rows / 2;
+        //// ******* CHECK IF ROIS OVERLAP *******
 
-        center_of_first_ROI.x = ROIs[0].x + ROIs[0].width / 2; // USE THIS IF ASSUMING THE NEEDLE TIP IS FIXED
-        center_of_first_ROI.y = ROIs[0].y + ROIs[0].height / 2;
+        //// Define the center of the first region of interest 
 
-        // Define the center of the second region of interest
-        center_of_second_ROI.x = second_ROI_matchLoc.x + second_ROI_template.cols / 2;
-        center_of_second_ROI.y = second_ROI_matchLoc.y + second_ROI_template.rows / 2;
+        //// center_of_first_ROI.x = first_ROI_matchLoc.x + first_ROI_template.cols / 2; // USE THIS IF USING TEMPLATE MATCHING WITH A MOBILE FIRST ROI
+        //// center_of_first_ROI.y = first_ROI_matchLoc.y + first_ROI_template.rows / 2;
 
-        // Compute the distance between the centers of these regions of interest
-        distance_bw_ROIs = cv::norm(center_of_first_ROI - center_of_second_ROI);
+        //center_of_first_ROI.x = ROIs[0].x + ROIs[0].width / 2; // USE THIS IF ASSUMING THE NEEDLE TIP IS FIXED
+        //center_of_first_ROI.y = ROIs[0].y + ROIs[0].height / 2;
 
-        // Determine whether needle has entered the first region of interest or not and if it has then handle it accordingly
-        if (distance_bw_ROIs < second_ROI_template.cols / 2 || distance_bw_ROIs < second_ROI_template.rows / 2) {
-            //areROIsOverlapped = true;
-            areROIsOverlapped = false;
+        //// Define the center of the second region of interest
+        //center_of_second_ROI.x = second_ROI_matchLoc.x + second_ROI_template.cols / 2;
+        //center_of_second_ROI.y = second_ROI_matchLoc.y + second_ROI_template.rows / 2;
 
-            second_ROI_matchLoc.x += dx;
-            second_ROI_matchLoc.y += dz;
-        }
-        else {
-            areROIsOverlapped = false;
-        }
+        //// Compute the distance between the centers of these regions of interest
+        //distance_bw_ROIs = cv::norm(center_of_first_ROI - center_of_second_ROI);
 
-        // ***********************************
+        //// Determine whether needle has entered the first region of interest or not and if it has then handle it accordingly
+        //if (distance_bw_ROIs < second_ROI_template.cols / 2 || distance_bw_ROIs < second_ROI_template.rows / 2) {
+        //    //areROIsOverlapped = true;
+        //    areROIsOverlapped = false;
+
+        //    second_ROI_matchLoc.x += dx;
+        //    second_ROI_matchLoc.y += dz;
+        //}
+        //else {
+        //    areROIsOverlapped = false;
+        //}
+
+        //// ***********************************
 
 
 
