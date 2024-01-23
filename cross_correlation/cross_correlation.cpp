@@ -332,7 +332,7 @@ int main(int argc, char** argv)
         
         */
 
-        Mat thresh_ROI = first_ROI_template > 100;
+        Mat thresh_ROI = first_ROI_template > 150;
 
         for (uint16_t j = 0; j < ROIs[0].height; ++j) {
             for (uint16_t i = 0; i < ROIs[0].width; ++i) {
