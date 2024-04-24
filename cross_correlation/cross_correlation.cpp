@@ -21,7 +21,7 @@ using namespace cv;
 using namespace std;// not good, just use std every time.
 
 
-bool local_testing = false;
+bool local_testing = true;
 
 
 // Variables related to defining region of interest for template matching
@@ -90,13 +90,17 @@ int main(int argc, char** argv)
     vector<Rect> ROIs(2);
     Mat first_ROI_template;
     Mat second_ROI_template;
+    Mat temp_ROI_template;
     bool areROIsOverlapped = false;
     Mat result;
     double distance_bw_ROIs;
+    double template_error;
+    double threshold_error;
+    double first_error; 
 
     // ROI correlation variables (currently not using first ROI corr. var.)
     // double first_ROI_minVal, first_ROI_maxVal;
-    // Point first_ROI_minLoc, first_ROI_maxLoc, first_ROI_matchLoc;
+    Point first_ROI_minLoc, first_ROI_maxLoc, first_ROI_matchLoc;
     double second_ROI_minVal, second_ROI_maxVal;
     Point second_ROI_minLoc, second_ROI_maxLoc, second_ROI_matchLoc;
     int margin_size;
@@ -314,6 +318,8 @@ int main(int argc, char** argv)
 
         if (!first_ROI_defined) {
             ROIs[0] = selectROI(windowName, image_for_display, true, false);
+            first_ROI_matchLoc.x = ROIs[0].x;
+            first_ROI_matchLoc.y = ROIs[0].y;
             first_ROI_template = filteredScreenshotImage(ROIs[0]);
             first_ROI_defined = true;
         }
@@ -331,8 +337,52 @@ int main(int argc, char** argv)
                 - NEEDS WORK. X-OFFSET STILL INCORRECT
         
         */
+        
+        temp_ROI_template = filteredScreenshotImage(ROIs[0]); // Get the current image's ROI around the needle
+        Mat thresh_ROI_high = first_ROI_template > 180; // Threshold the saved image's ROI at a high and low threshold
+        Mat thresh_temp_high = temp_ROI_template > 180;// Threshold the current image's ROI at a high and low threshold
+        Mat thresh_ROI_low = first_ROI_template > 80;
+        Mat thresh_temp_low = temp_ROI_template > 80;
+        Mat thresh_ROI;
 
-        Mat thresh_ROI = first_ROI_template > 150;
+        uint16_t high_temp_thresh_total = 0;
+        uint16_t high_first_thresh_total = 0;
+        uint16_t low_temp_thresh_total = 0;
+        uint16_t low_first_thresh_total = 0;
+
+        for (uint16_t j = 0; j < ROIs[0].height; ++j) {
+            for (uint16_t i = 0; i < ROIs[0].width; ++i) {
+                if (thresh_temp_high.at<bool>(j, i) == 255) {
+                    high_temp_thresh_total += 1; // Count the pixels with a high threshold value
+                }
+                if (thresh_ROI_high.at<bool>(j, i) == 255) {
+                    high_first_thresh_total += 1;
+                }
+
+                if (thresh_temp_low.at<bool>(j, i) == 255) {
+                    low_temp_thresh_total += 1; // Count the pixels with a low threshold value
+                }
+                if (thresh_ROI_low.at<bool>(j, i) == 255) {
+                    low_first_thresh_total += 1;
+                }
+
+                //cout << "first_thresh: " << first_thresh_total << endl;
+            }
+        }
+        
+        template_error = abs(high_first_thresh_total - high_temp_thresh_total) / high_first_thresh_total; // if the needle is in the frame, but in a different spot, the error should be low
+        threshold_error = abs(high_temp_thresh_total - low_temp_thresh_total) / (high_temp_thresh_total+1); // if changing the threshold doesn't drastically change the number of included pixels (would occur in the tissue)
+        first_error = abs(high_first_thresh_total - low_first_thresh_total) / (high_first_thresh_total);
+
+        // if the total white pixels are similar AND the new template doesn't have more white pixels than the original AND if the difference between thresholding values isn't too big
+        if (template_error < 0.01 && high_first_thresh_total<high_temp_thresh_total && threshold_error <= first_error) { 
+            thresh_ROI = thresh_temp_low;
+        }
+        else {
+            // TODO: move the original overlay ROI according to the UDP packets
+            thresh_ROI = thresh_ROI_low;
+        }
+        
 
         for (uint16_t j = 0; j < ROIs[0].height; ++j) {
             for (uint16_t i = 0; i < ROIs[0].width; ++i) {
@@ -457,8 +507,8 @@ int main(int argc, char** argv)
             //areROIsOverlapped = true;
             areROIsOverlapped = false;
 
-            second_ROI_matchLoc.x += dx;
-            second_ROI_matchLoc.y += dz;
+            //second_ROI_matchLoc.x += dx; // Commented for testing UDP-influenced template moving for first_ROI 
+            //second_ROI_matchLoc.y += dz;
         }
         else {
             areROIsOverlapped = false;
