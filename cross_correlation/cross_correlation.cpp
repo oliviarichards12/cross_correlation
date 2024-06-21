@@ -11,6 +11,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/imgproc/segmentation.hpp>
 
 #include <iostream>
 #include <string>
@@ -33,6 +34,16 @@ bool second_ROI_defined = false;
 // clock_t start;
 double t_duration;
 int counter=0;
+
+int x_mouse_click; 
+int y_mouse_click; 
+int x_mouse_move; 
+int y_mouse_move; 
+int click_num; 
+
+
+
+
 
 Mat getMat(HWND hWnd, int x1, int y1, int x2, int y2) {
 
@@ -72,6 +83,44 @@ Mat getMat(HWND hWnd, int x1, int y1, int x2, int y2) {
     return mat;
 }
 
+void CallBackFunc(int event, int x, int y, int flags, void* userdata) // https://www.opencv-srf.com/2011/11/mouse-events.html
+{
+    if(!second_ROI_defined){
+        if (event == EVENT_LBUTTONDOWN)
+        {
+            click_num += 1;
+            if (click_num == 1) {
+                x_mouse_click = x;
+                y_mouse_click = y;
+                cout << "1st Left button of the mouse is clicked - position(" << x << ", " << y << ")" << endl;
+            }
+            else if (click_num == 2) {
+                x_mouse_click = x; 
+                y_mouse_click = y; 
+                click_num = 0;
+                cout << "2nd Left button of the mouse is clicked - position(" << x << ", " << y << ")" << endl;
+            }
+                
+
+            /*cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;*/
+
+        }
+        else if (event == EVENT_RBUTTONDOWN) // 
+        {
+            
+        }
+        else if (event == EVENT_MOUSEMOVE)
+        {
+            if (click_num == 1) {
+                x_mouse_move = x; 
+                y_mouse_move = y;
+                cout << "Current position of the mouse (" << x << ", " << y << ")" << endl;
+            }
+
+        }
+    }
+}
+
 int main(int argc, char** argv)
 {
 
@@ -107,17 +156,19 @@ int main(int argc, char** argv)
     Rect enlarged_second_ROI;
     Mat second_ROI_search_region;
 
-    // Clipping region
-    int x1;
-    int x2;
-    int y1;
-    int y2;
+
 
     // Image capture
     Mat screenshotImage;
     Mat grayScreenshotImage;
     Mat image_for_display;
 
+
+    // Clipping region
+    int x1;
+    int x2;
+    int y1;
+    int y2;
 
     // ***********************************
 
@@ -438,19 +489,103 @@ int main(int argc, char** argv)
 
         // ******* SECOND ROI SETUP *******
 
+        //if (!second_ROI_defined) {
+        //    ROIs[1] = selectROI(windowName, image_for_display, true, false);
+        //    second_ROI_template = filteredScreenshotImage(ROIs[1]);
+        //    second_ROI_matchLoc.x = ROIs[1].x;
+        //    second_ROI_matchLoc.y = ROIs[1].y;
+        //    second_ROI_defined = true;
+        //}
+
+
+
+        // ******* SECOND ROI SETUP WITH INTELLIGENT SCISSORS *******
+
         if (!second_ROI_defined) {
-            ROIs[1] = selectROI(windowName, image_for_display, true, false);
-            second_ROI_template = filteredScreenshotImage(ROIs[1]);
-            second_ROI_matchLoc.x = ROIs[1].x;
-            second_ROI_matchLoc.y = ROIs[1].y;
+            //ROIs[1] = selectROI(windowName, image_for_display, true, false);
+            //second_ROI_template = filteredScreenshotImage(ROIs[1]);
+            //second_ROI_matchLoc.x = ROIs[1].x;
+            //second_ROI_matchLoc.y = ROIs[1].y;
+            
+            click_num = 0;
+            segmentation::IntelligentScissorsMB tool;
+            tool.setEdgeFeatureCannyParameters(32, 100) // possilby use the ROIs[1].x,y for the threshold parameters
+            .setGradientMagnitudeMaxLimit(200);
+            // calculate image features
+            tool.applyImage(filteredScreenshotImage);
+
+
+            setMouseCallback(windowName, CallBackFunc, NULL);
+            //imshow(windowName, image_for_display);
+            
+            bool hasMap = false;
+            int startX;
+            int startY;
+            Mat dst;
+            
+            while (waitKey(1) != 113) {
+                
+
+
+                // calculate map for specified source point
+                if (!hasMap && click_num==1) {
+                    startX = x_mouse_click;
+                    startY = y_mouse_click;
+                    Point source_point(startX, startY);
+                    tool.buildMap(source_point);
+                    hasMap = true;
+                }
+                
+
+                // fast fetching of contours
+                // for specified target point and the pre-calculated map (stored internally)
+                if (hasMap && click_num == 1) {
+                    image_for_display.copyTo(dst);
+
+                    Point target_point(x_mouse_move, y_mouse_move);
+                    cv::Mat contour;
+
+                    tool.getContour(target_point, contour);
+                    std::vector<cv::Mat> contours;
+                    contours.push_back(contour);
+
+                    cv::Scalar color(0, 255, 0, 255);
+                    cv::polylines(dst, contours, false, color, 5, cv::LINE_8);
+
+                    //imshow("Intelligent Scissors", dst);
+                    imshow(windowName, dst);
+                    cout << contours << endl;
+
+                }
+
+                if (click_num == 0) {
+                    hasMap = false;
+                }
+                
+
+
+                
+            }
+            
+            //cout<< waitKey(0)<<endl;
+
             second_ROI_defined = true;
+            
+            
         }
 
         // ***********************************
-
-
-        
        
+
+
+
+
+
+
+
+
+
+
         // ******* TEMPLATE MATCHING: SECOND ROI ******* 
         /*
             Notes: 
@@ -481,6 +616,14 @@ int main(int argc, char** argv)
 
         
         // ***********************************
+
+
+
+
+
+
+
+
 
 
 
