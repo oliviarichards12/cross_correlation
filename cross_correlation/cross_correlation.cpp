@@ -30,16 +30,22 @@ bool first_ROI_defined = false;
 bool second_ROI_defined = false;
 
 
-// Vriables for measuring UDP send freq
+// Variables for measuring UDP send freq
 // clock_t start;
 double t_duration;
 int counter=0;
 
-int x_mouse_click; 
-int y_mouse_click; 
+// Intelligent Scissor variables 
 int x_mouse_move; 
 int y_mouse_move; 
 int click_num; 
+int startX;
+int startY;
+int endX; 
+int endY;
+std::vector<cv::Mat> border_contours;
+int box_size_x = 40;
+int box_size_y = box_size_x * 1.5;
 
 
 
@@ -90,13 +96,13 @@ void CallBackFunc(int event, int x, int y, int flags, void* userdata) // https:/
         {
             click_num += 1;
             if (click_num == 1) {
-                x_mouse_click = x;
-                y_mouse_click = y;
+                startX = x;
+                startY = y;
                 cout << "1st Left button of the mouse is clicked - position(" << x << ", " << y << ")" << endl;
             }
             else if (click_num == 2) {
-                x_mouse_click = x; 
-                y_mouse_click = y; 
+                endX = x; 
+                endY = y; 
                 click_num = 0;
                 cout << "2nd Left button of the mouse is clicked - position(" << x << ", " << y << ")" << endl;
             }
@@ -136,9 +142,15 @@ int main(int argc, char** argv)
     // ROI definition
     Point center_of_first_ROI;
     Point center_of_second_ROI;
-    vector<Rect> ROIs(2);
+    vector<Rect> ROIs(3);
     Mat first_ROI_template;
     Mat second_ROI_template;
+    vector<Mat> second_ROI_startEnd_template(2);
+
+
+    
+
+
     Mat temp_ROI_template;
     bool areROIsOverlapped = false;
     Mat result;
@@ -152,6 +164,9 @@ int main(int argc, char** argv)
     Point first_ROI_minLoc, first_ROI_maxLoc, first_ROI_matchLoc;
     double second_ROI_minVal, second_ROI_maxVal;
     Point second_ROI_minLoc, second_ROI_maxLoc, second_ROI_matchLoc;
+    vector<Point> second_ROI_startEnd_maxLoc(2); 
+    vector<Point> second_ROI_startEnd_matchLoc(2);
+
     int margin_size;
     Rect enlarged_second_ROI;
     Mat second_ROI_search_region;
@@ -487,7 +502,7 @@ int main(int argc, char** argv)
 
 
 
-        // ******* SECOND ROI SETUP *******
+        //// ******* SECOND ROI SETUP *******
 
         //if (!second_ROI_defined) {
         //    ROIs[1] = selectROI(windowName, image_for_display, true, false);
@@ -496,16 +511,56 @@ int main(int argc, char** argv)
         //    second_ROI_matchLoc.y = ROIs[1].y;
         //    second_ROI_defined = true;
         //}
+        //// ***********************************
 
 
 
-        // ******* SECOND ROI SETUP WITH INTELLIGENT SCISSORS *******
+        //// ******* TEMPLATE MATCHING: SECOND ROI ******* 
+        ///*
+        //    Notes:
+        //        - The search region needs to be offset by the robot movement sent through the UDP.
+
+        //*/
+
+        //margin_size = 50; // number of pixels around the ROI to search for a match adjusted according to the robot motion
+        //enlarged_second_ROI = Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y - margin_size + dz), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height + margin_size + dz));
+        //second_ROI_search_region = filteredScreenshotImage(enlarged_second_ROI);
+
+        //if (!areROIsOverlapped) {
+        //    matchTemplate(second_ROI_search_region, second_ROI_template, result, TM_CCORR_NORMED);
+        //    //normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
+        //    minMaxLoc(result, &second_ROI_minVal, &second_ROI_maxVal, &second_ROI_minLoc, &second_ROI_maxLoc, Mat());
+        //    if (counter % 10 == 0) {
+        //        cout << "Match score: " << second_ROI_maxVal << endl;
+        //    }
+        //    second_ROI_matchLoc = second_ROI_maxLoc + Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y - margin_size);
+
+        //    // template updating
+        //    if (counter % 10 == 0 && second_ROI_maxVal > 0.8) {
+        //        second_ROI_template = filteredScreenshotImage(Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height)));
+        //    }
+
+        //}
+        //rectangle(image_for_display, second_ROI_matchLoc, Point(second_ROI_matchLoc.x + second_ROI_template.cols, second_ROI_matchLoc.y + second_ROI_template.rows), Scalar(255, 0, 0), 3, 8, 0);
+
+
+        //// ***********************************
+
+
+
+
+
+
+
+
+
+
+
+
+
+        // ******* SECOND ROIs CENTERLINE SETUP WITH INTELLIGENT SCISSORS *******
 
         if (!second_ROI_defined) {
-            //ROIs[1] = selectROI(windowName, image_for_display, true, false);
-            //second_ROI_template = filteredScreenshotImage(ROIs[1]);
-            //second_ROI_matchLoc.x = ROIs[1].x;
-            //second_ROI_matchLoc.y = ROIs[1].y;
             
             click_num = 0;
             segmentation::IntelligentScissorsMB tool;
@@ -519,18 +574,15 @@ int main(int argc, char** argv)
             //imshow(windowName, image_for_display);
             
             bool hasMap = false;
-            int startX;
-            int startY;
             Mat dst;
             
-            while (waitKey(1) != 113) {
+
+            while (waitKey(1) != 13) { // press enter to escape
                 
 
 
                 // calculate map for specified source point
                 if (!hasMap && click_num==1) {
-                    startX = x_mouse_click;
-                    startY = y_mouse_click;
                     Point source_point(startX, startY);
                     tool.buildMap(source_point);
                     hasMap = true;
@@ -554,68 +606,227 @@ int main(int argc, char** argv)
 
                     //imshow("Intelligent Scissors", dst);
                     imshow(windowName, dst);
-                    cout << contours << endl;
+                    border_contours = contours;
 
                 }
 
                 if (click_num == 0) {
                     hasMap = false;
                 }
-                
-
-
-                
+                 
             }
             
-            //cout<< waitKey(0)<<endl;
+            //for (size_t i = 0; i < border_contours.size(); ++i) {
+            //    // Print information about the cv::Mat (optional)
+            //    std::cout << "Mat " << i << ":\n";
+            //    std::cout << "Size: " << border_contours[i].size() << std::endl;
+            //    std::cout << "Channels: " << border_contours[i].channels() << std::endl;
+            //    std::cout << "Type: " << border_contours[i].type() << std::endl;
 
-            second_ROI_defined = true;
+            //    // Visualize the cv::Mat (optional)
+            //    std::cout << border_contours[i] << endl;
+            //     // Wait for a key press before closing the window
+            //}
+
+            //second_ROI_defined = true;
             
             
-        }
+        
 
         // ***********************************
-       
+
+
+
+
+        // ******* SEGMENT DISCRETIZING: SECOND ROIs USING INTELLIGENT SCISSORS *******
+
+        std::vector<cv::Point> contour = border_contours[0];
+
+        // Calculate the arc length
+        double contourLength = cv::arcLength(contour, false);
+
+        // Calculate the length of each discretized segment (10 ROIs total)
+        double segmentLength = contourLength / 11.0;
+
+        // Create the segments
+        std::vector<cv::Point> segmentPoints;
+        segmentPoints.push_back(contour[0]); 
+        double accumulatedLength = 0.0;
+
+        for (size_t i = 1; i < contour.size(); i++) {
+            double segment = cv::norm(contour[i] - contour[i - 1]);
+            accumulatedLength += segment;
+
+            if (accumulatedLength >= segmentLength) {
+                segmentPoints.push_back(contour[i]);
+                accumulatedLength = 0.0;
+            }
+
+            if (segmentPoints.size() == 10) break;
+        }
+
+        // Ensure we have exactly 10 points
+        if (segmentPoints.size() < 11) {
+            segmentPoints.push_back(contour.back());
+        }
+
+        // Create ROIs
+        int margin = 50;
+        std::vector<cv::Rect> rois;
+
+        for (size_t i = 0; i < segmentPoints.size() - 1; i++) {
+            cv::Point p1 = segmentPoints[i];
+            cv::Point p2 = segmentPoints[i + 1];
+
+            int minX = std::min(p1.x, p2.x);
+            int minY = std::min(p1.y, p2.y) - margin;
+            int maxX = std::max(p1.x, p2.x);
+            int maxY = std::max(p1.y, p2.y) + margin;
+
+            cv::Rect roi(minX, minY, maxX - minX, maxY - minY);
+            rois.push_back(roi);
+        }
+
+        //// Draw the ROIs on an output image for visualization
+        //Mat outputImage; 
+        //image_for_display.copyTo(outputImage);
+
+        //for (const auto& roi : rois) {
+        //    cv::rectangle(outputImage, roi, cv::Scalar(0, 255, 0), 2);
+        //}
+
+
+        //cv::polylines(outputImage, border_contours, false, cv::Scalar(0, 255, 0), 5, cv::LINE_8);
+
+        //// Display the result
+        //cv::imshow("ROIs", filteredScreenshotImage);
+        //cv::waitKey(0);
+
+        // ***********************************
+
+
+
+
+            
+        Point p1(startX - box_size_x, startY - box_size_y);
+        Point p2(startX + box_size_x, startY + box_size_y);
+        Rect temp_roi(p1, p2);
+        ROIs[1] = temp_roi;
+
+        p1 = Point(endX - box_size_x, endY - box_size_y);
+        p2 = Point(endX + box_size_x, endY + box_size_y);
+        temp_roi = Rect(p1, p2);
+        ROIs[2] = temp_roi;
+
+        second_ROI_startEnd_template[0] = filteredScreenshotImage(ROIs[1]);
+        second_ROI_startEnd_template[1] = filteredScreenshotImage(ROIs[2]);
+
+        second_ROI_startEnd_matchLoc[0].x = ROIs[1].x;
+        second_ROI_startEnd_matchLoc[0].y = ROIs[1].y;
+
+        second_ROI_startEnd_matchLoc[1].x = ROIs[2].x;
+        second_ROI_startEnd_matchLoc[1].y = ROIs[2].y;
+
+        second_ROI_defined = true;
+
+        //// Draw the ROIs on an output image for visualization
+        //Mat outputImage; 
+        //image_for_display.copyTo(outputImage);
+
+        //for (const auto& roi : ROIs) {
+        //    cv::rectangle(outputImage, roi, cv::Scalar(0, 255, 0), 2);
+        //}
+
+
+        //cv::polylines(outputImage, border_contours, false, cv::Scalar(0, 255, 0), 5, cv::LINE_8);
+
+        //// Display the result
+        //cv::imshow("ROIs", outputImage);
+        //cv::waitKey(0);
+        }
 
 
 
 
 
-
-
-
-
-
-        // ******* TEMPLATE MATCHING: SECOND ROI ******* 
+        // ******* TEMPLATE MATCHING: SECOND ROIs USING INTELLIGENT SCISSORS ******* 
         /*
-            Notes: 
+            Notes:
                 - The search region needs to be offset by the robot movement sent through the UDP.
-                
+
         */
+        int margin_size = 50;
 
-        margin_size = 50; // number of pixels around the ROI to search for a match adjusted according to the robot motion
-        enlarged_second_ROI = Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y - margin_size + dz), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height + margin_size + dz));
-        second_ROI_search_region = filteredScreenshotImage(enlarged_second_ROI);
-        
-        if (!areROIsOverlapped) {
-            matchTemplate(second_ROI_search_region, second_ROI_template, result, TM_CCORR_NORMED);
-            //normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
-            minMaxLoc(result, &second_ROI_minVal, &second_ROI_maxVal, &second_ROI_minLoc, &second_ROI_maxLoc, Mat());
-            if (counter %10 == 0) {
-                cout << "Match score: "<< second_ROI_maxVal << endl; 
-            }
-            second_ROI_matchLoc = second_ROI_maxLoc + Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y - margin_size);
+        for (int i = 1; i < 3; i++) {
+            enlarged_second_ROI = Rect(Point(second_ROI_startEnd_matchLoc[i-1].x, second_ROI_startEnd_matchLoc[i-1].y - margin_size + dz), Point(second_ROI_startEnd_matchLoc[i-1].x + ROIs[i].width, second_ROI_startEnd_matchLoc[i-1].y + ROIs[i].height + margin_size + dz));
+            second_ROI_search_region = filteredScreenshotImage(enlarged_second_ROI);
             
-            // template updating
-            if(counter % 10 == 0 && second_ROI_maxVal > 0.8){
-                second_ROI_template = filteredScreenshotImage(Rect(Point(second_ROI_matchLoc.x, second_ROI_matchLoc.y), Point(second_ROI_matchLoc.x + ROIs[1].width, second_ROI_matchLoc.y + ROIs[1].height)));
+            if (!areROIsOverlapped) {
+                matchTemplate(second_ROI_search_region, second_ROI_startEnd_template[i-1], result, TM_CCORR_NORMED);
+                //normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
+                minMaxLoc(result, &second_ROI_minVal, &second_ROI_maxVal, &second_ROI_minLoc, &second_ROI_maxLoc, Mat());
+                if (counter % 10 == 0) {
+                    cout << "Match score: " << second_ROI_maxVal << endl;
+                }
+                second_ROI_startEnd_matchLoc[i-1] = second_ROI_maxLoc + Point(second_ROI_startEnd_matchLoc[i - 1].x, second_ROI_startEnd_matchLoc[i - 1].y - margin_size);
+
+                // template updating
+                if (counter % 10 == 0 && second_ROI_maxVal > 0.9) {
+                    second_ROI_startEnd_template[i-1] = filteredScreenshotImage(Rect(Point(second_ROI_startEnd_matchLoc[i - 1].x, second_ROI_startEnd_matchLoc[i - 1].y), Point(second_ROI_startEnd_matchLoc[i - 1].x + ROIs[i].width, second_ROI_startEnd_matchLoc[i - 1].y + ROIs[i].height)));
+                }
+
             }
-            
+            rectangle(image_for_display, second_ROI_startEnd_matchLoc[i - 1], Point(second_ROI_startEnd_matchLoc[i - 1].x + second_ROI_startEnd_template[i-1].cols, second_ROI_startEnd_matchLoc[i - 1].y + second_ROI_startEnd_template[i - 1].rows), Scalar(255, 0, 0), 3, 8, 0);
+
         }
-        rectangle(image_for_display, second_ROI_matchLoc, Point(second_ROI_matchLoc.x + second_ROI_template.cols, second_ROI_matchLoc.y + second_ROI_template.rows), Scalar(255, 0, 0), 3, 8, 0);
 
-        
+
+
+        segmentation::IntelligentScissorsMB tool;
+        tool.setEdgeFeatureCannyParameters(32, 100)
+            .setGradientMagnitudeMaxLimit(200);
+        // calculate image features
+
+        enlarged_second_ROI = Rect(Point(second_ROI_startEnd_matchLoc[0].x, second_ROI_startEnd_matchLoc[0].y - margin_size + dz), Point(second_ROI_startEnd_matchLoc[1].x + ROIs[2].width, second_ROI_startEnd_matchLoc[1].y + ROIs[2].height + margin_size + dz));
+        second_ROI_search_region = filteredScreenshotImage(enlarged_second_ROI);
+
+        tool.applyImage(second_ROI_search_region);
+ 
+        //tool.buildMap(Point(second_ROI_startEnd_matchLoc[1].x + box_size_x, second_ROI_startEnd_matchLoc[1].y + box_size_y));
+
+        Point startPoint(box_size_x, margin_size + box_size_y);
+        tool.buildMap(startPoint);
+
+        vector<Point> contour_roi;
+
+        Point endPoint(second_ROI_startEnd_matchLoc[1].x - second_ROI_startEnd_matchLoc[0].x + box_size_x, margin_size + box_size_y);
+        tool.getContour(endPoint, contour_roi);
+        //std::vector<cv::Mat> contours_;
+        //contours_.push_back(contour_);
+
+        vector<Point> offsetContour; 
+        int offsetX = second_ROI_startEnd_matchLoc[0].x; 
+        int offsetY = second_ROI_startEnd_matchLoc[0].y-margin_size;
+
+        for (const auto& point : contour_roi) {
+            Point offset = point + Point(offsetX, offsetY);
+            offsetContour.push_back(offset);
+        }
+
+        cv::Scalar color(0, 255, 0, 255);
+        cv::polylines(image_for_display, offsetContour, false, color, 5, cv::LINE_8);
+
+        //imshow("Intelligent Scissors", dst);
+        imshow(windowName, image_for_display);
+
+
+
+
+
+
+
         // ***********************************
+
 
 
 
